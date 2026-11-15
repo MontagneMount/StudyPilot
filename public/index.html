@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StudyPilot — AI Course Assistant (M2: RAG with Citations)</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="container header-inner">
+      <div>
+        <h1>StudyPilot</h1>
+        <p class="subtitle">AI Teaching Assistant for University Course Materials (M2: RAG with Page Citations)</p>
+      </div>
+      <span class="badge" id="status-badge">0 Documents Indexed</span>
+    </div>
+  </header>
+
+  <main class="container main-grid">
+    <!-- Left Column: Course & Multi-Document Management -->
+    <aside class="sidebar-col">
+      <!-- Course Selection -->
+      <section class="card" aria-labelledby="course-heading">
+        <h2 id="course-heading">1. Select Course</h2>
+        <div class="field">
+          <label for="course-select">Active Course</label>
+          <select id="course-select" class="select-input"></select>
+        </div>
+
+        <form id="course-form" class="inline-form" novalidate>
+          <div class="field inline-field">
+            <label for="new-course-name" class="sr-only">New Course Name</label>
+            <span id="course-hint" class="hint">Add another course (e.g. "CS5242 Neural Networks")</span>
+            <div class="input-row">
+              <input
+                type="text"
+                id="new-course-name"
+                placeholder="New course name..."
+                required
+                minlength="2"
+                aria-describedby="course-hint"
+                aria-errormessage="course-error"
+              />
+              <button type="submit" class="btn btn-secondary">Add</button>
+            </div>
+            <div id="course-error" class="error-msg">
+              <span aria-hidden="true">❌</span> Enter at least 2 characters.
+            </div>
+          </div>
+        </form>
+      </section>
+
+      <!-- Upload PDF -->
+      <section class="card" aria-labelledby="upload-heading">
+        <h2 id="upload-heading">2. Upload Course PDFs</h2>
+
+        <form id="upload-form" novalidate>
+          <div class="field">
+            <label for="pdf-file">Add lecture slide or textbook PDF</label>
+            <span id="pdf-hint" class="hint">Accepted format: .pdf only (max 20 MB). Pages are chunked &amp; embedded.</span>
+            <input
+              type="file"
+              id="pdf-file"
+              name="file"
+              accept=".pdf,application/pdf"
+              required
+              aria-describedby="pdf-hint"
+              aria-errormessage="pdf-error"
+            />
+            <div id="pdf-error" class="error-msg" role="alert">
+              <span aria-hidden="true">❌</span> Please choose a PDF file before uploading.
+            </div>
+          </div>
+
+          <button type="submit" id="upload-btn" class="btn btn-primary full-width">
+            Upload &amp; Index PDF
+          </button>
+        </form>
+
+        <div id="upload-feedback" class="feedback" role="status" aria-live="polite" hidden></div>
+
+        <div class="doc-list-section">
+          <div class="doc-list-header">Course Documents</div>
+          <ul id="document-list" class="document-list">
+            <li class="doc-empty">No PDFs uploaded for this course yet.</li>
+          </ul>
+        </div>
+      </section>
+    </aside>
+
+    <!-- Right Column: RAG Q&A with Clickable Citations -->
+    <section class="card chat-card" aria-labelledby="ask-heading">
+      <div class="chat-card-header">
+        <h2 id="ask-heading">3. Ask with Page-Level Citations</h2>
+        <div class="scope-selector">
+          <label for="doc-scope-select">Search Scope:</label>
+          <select id="doc-scope-select" class="select-input select-sm">
+            <option value="">All Documents in Course</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="chat-history" class="chat-history" aria-live="polite">
+        <p class="empty-state" id="empty-chat-msg">
+          Upload one or more course PDFs on the left, then ask a question. Answers include clickable <code>[p.X]</code> citations!
+        </p>
+      </div>
+
+      <form id="ask-form" class="ask-form" novalidate>
+        <div class="field">
+          <label for="question-input">Your Question</label>
+          <span id="question-hint" class="hint">
+            Tip: Click any <code>[p.12]</code> citation badge in the answer to inspect the exact source chunk from that page.
+          </span>
+          <textarea
+            id="question-input"
+            name="question"
+            rows="3"
+            required
+            minlength="2"
+            placeholder="Ask a question about your uploaded course materials..."
+            aria-describedby="question-hint"
+            aria-errormessage="question-error"
+            disabled
+          ></textarea>
+          <div id="question-error" class="error-msg">
+            <span aria-hidden="true">❌</span> Please enter a question (at least 2 characters).
+          </div>
+        </div>
+
+        <div class="ask-actions">
+          <button type="submit" id="ask-btn" class="btn btn-primary" disabled>
+            Ask StudyPilot (RAG)
+          </button>
+        </div>
+      </form>
+
+      <div id="ask-feedback" class="feedback" role="alert" hidden></div>
+    </section>
+  </main>
+
+  <!-- Citation Source Preview Modal Dialog -->
+  <dialog id="citation-dialog" class="citation-dialog" aria-labelledby="citation-dialog-title">
+    <div class="dialog-header">
+      <div>
+        <h3 id="citation-dialog-title">Source Citation</h3>
+        <p id="citation-dialog-meta" class="dialog-meta"></p>
+      </div>
+      <button
+        type="button"
+        class="btn btn-secondary btn-sm"
+        commandfor="citation-dialog"
+        command="close"
+        id="citation-dialog-close"
+      >
+        Close
+      </button>
+    </div>
+    <div id="citation-dialog-body" class="dialog-body"></div>
+  </dialog>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
