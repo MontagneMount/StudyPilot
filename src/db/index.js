@@ -48,6 +48,7 @@ export function initDb(customPath) {
       document_id TEXT NOT NULL,
       page INTEGER NOT NULL,
       chunk_index INTEGER NOT NULL,
+      citation_label TEXT,
       content TEXT NOT NULL,
       embedding TEXT NOT NULL,
       FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE
@@ -76,6 +77,13 @@ export function initDb(customPath) {
       FOREIGN KEY (question_id) REFERENCES quiz_questions(id) ON DELETE CASCADE
     );
   `);
+
+  // Backward-compatible migration if chunks table was created in M2 without citation_label
+  try {
+    db.exec('ALTER TABLE chunks ADD COLUMN citation_label TEXT;');
+  } catch {
+    // Column already exists
+  }
 
   // Ensure default course exists
   const existingDefault = db
@@ -165,16 +173,18 @@ export function saveDocumentWithChunks({
     ).run(documentId, courseId, filename, fileHash, type, pages, createdAt);
 
     const insertChunk = db.prepare(
-      `INSERT INTO chunks (id, document_id, page, chunk_index, content, embedding)
-       VALUES (?, ?, ?, ?, ?, ?)`
+      `INSERT INTO chunks (id, document_id, page, chunk_index, citation_label, content, embedding)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
     );
 
     for (const chunk of chunks) {
+      const label = chunk.citationLabel || `p.${chunk.page}`;
       insertChunk.run(
         crypto.randomUUID(),
         documentId,
         chunk.page,
         chunk.chunkIndex,
+        label,
         chunk.content,
         JSON.stringify(chunk.embedding)
       );
@@ -230,7 +240,7 @@ export function getChunksForRetrieval({ courseId, documentId } = {}) {
   if (documentId) {
     rows = db
       .prepare(
-        `SELECT c.id, c.document_id, d.filename, c.page, c.chunk_index, c.content, c.embedding
+        `SELECT c.id, c.document_id, d.filename, d.type AS doc_type, c.page, c.chunk_index, c.citation_label, c.content, c.embedding
          FROM chunks c
          JOIN documents d ON d.id = c.document_id
          WHERE c.document_id = ?
@@ -240,7 +250,7 @@ export function getChunksForRetrieval({ courseId, documentId } = {}) {
   } else {
     rows = db
       .prepare(
-        `SELECT c.id, c.document_id, d.filename, c.page, c.chunk_index, c.content, c.embedding
+        `SELECT c.id, c.document_id, d.filename, d.type AS doc_type, c.page, c.chunk_index, c.citation_label, c.content, c.embedding
          FROM chunks c
          JOIN documents d ON d.id = c.document_id
          WHERE d.course_id = ?
@@ -253,8 +263,10 @@ export function getChunksForRetrieval({ courseId, documentId } = {}) {
     id: row.id,
     documentId: row.document_id,
     filename: row.filename,
+    docType: row.doc_type || 'pdf',
     page: row.page,
     chunkIndex: row.chunk_index,
+    citationLabel: row.citation_label || `p.${row.page}`,
     content: row.content,
     embedding: JSON.parse(row.embedding),
   }));

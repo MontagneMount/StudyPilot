@@ -36,7 +36,7 @@ export function createChatRouter({
         const doc = getDocumentById(targetDocId);
         if (!doc) {
           throw new AppError(
-            'Uploaded PDF was not found. Please upload the PDF again.',
+            'Uploaded material was not found. Please upload it again.',
             404,
             'FILE_NOT_FOUND'
           );
@@ -45,7 +45,7 @@ export function createChatRouter({
         const courseDocs = listDocumentsByCourse(targetCourseId);
         if (courseDocs.length === 0) {
           throw new AppError(
-            'No documents found in this course. Please upload at least one PDF before asking a question.',
+            'No materials found in this course. Please upload a PDF or lecture audio before asking a question.',
             400,
             'NO_DOCUMENTS_IN_COURSE'
           );
@@ -79,8 +79,10 @@ export function createChatRouter({
         chunkId: chunk.id,
         documentId: chunk.documentId,
         filename: chunk.filename,
+        docType: chunk.docType || 'pdf',
         page: chunk.page,
         chunkIndex: chunk.chunkIndex,
+        citationLabel: chunk.citationLabel || `p.${chunk.page}`,
         content: chunk.content,
         score: Number(chunk.score.toFixed(4)),
       }));

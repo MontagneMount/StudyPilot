@@ -87,7 +87,11 @@ function hideFeedback(element) {
 }
 
 function openCitationPreview(citation) {
-  citationDialogTitle.textContent = `${citation.filename} — Page ${citation.page}`;
+  const label = citation.citationLabel || `p.${citation.page}`;
+  const isAudio = citation.docType === 'audio' || /^\d{1,2}:\d{2}/.test(label);
+  citationDialogTitle.textContent = isAudio
+    ? `${citation.filename} — Timestamp [${label}]`
+    : `${citation.filename} — Page ${citation.page}`;
   citationDialogMeta.textContent = `Chunk #${citation.chunkIndex + 1} • Similarity Score: ${citation.score}`;
   citationDialogBody.textContent = citation.content;
   if (typeof citationDialog.showModal === 'function') {
@@ -96,10 +100,11 @@ function openCitationPreview(citation) {
 }
 
 /**
- * Safely renders assistant text while converting [p.12] or [p. 12] patterns into clickable citation buttons.
+ * Safely renders assistant text while converting [p.12] page citations AND [02:15] audio timestamp
+ * citations into clickable citation buttons.
  */
 function renderAnswerWithClickableCitations(container, answerText, citations = []) {
-  const citationRegex = /\[p\.\s*(\d+)\]/gi;
+  const citationRegex = /\[(?:p\.\s*(\d+)|(\d{1,2}:\d{2}(?::\d{2})?))\]/gi;
   let lastIndex = 0;
   let match;
 
@@ -108,23 +113,41 @@ function renderAnswerWithClickableCitations(container, answerText, citations = [
       container.appendChild(document.createTextNode(answerText.slice(lastIndex, match.index)));
     }
 
-    const pageNum = Number(match[1]);
-    const matchingChunk =
-      citations.find((c) => Number(c.page) === pageNum) || citations[0] || null;
+    const pageMatch = match[1];
+    const timestampMatch = match[2];
+
+    let matchingChunk = null;
+    let displayLabel = '';
+
+    if (pageMatch) {
+      const pageNum = Number(pageMatch);
+      displayLabel = `[p.${pageNum}]`;
+      matchingChunk =
+        citations.find((c) => Number(c.page) === pageNum && c.docType !== 'audio') ||
+        citations[0] ||
+        null;
+    } else if (timestampMatch) {
+      displayLabel = `[${timestampMatch}]`;
+      matchingChunk =
+        citations.find((c) => c.citationLabel === timestampMatch) ||
+        citations.find((c) => c.docType === 'audio') ||
+        citations[0] ||
+        null;
+    }
 
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'citation-pill';
-    btn.textContent = `[p.${pageNum}]`;
+    btn.textContent = displayLabel;
     btn.title = matchingChunk
-      ? `View source from ${matchingChunk.filename} (Page ${pageNum})`
-      : `Page ${pageNum}`;
+      ? `View source from ${matchingChunk.filename} (${displayLabel})`
+      : displayLabel;
 
     if (matchingChunk) {
       btn.addEventListener('click', () =>
         openCitationPreview({
           ...matchingChunk,
-          page: pageNum,
+          citationLabel: timestampMatch || matchingChunk.citationLabel || `p.${pageMatch}`,
         })
       );
     }
@@ -173,7 +196,8 @@ function appendMessage(role, text, citations = []) {
       const pill = document.createElement('button');
       pill.type = 'button';
       pill.className = 'citation-pill';
-      pill.textContent = `${cit.filename} [p.${cit.page}]`;
+      const label = cit.citationLabel || `p.${cit.page}`;
+      pill.textContent = `${cit.filename} [${label}]`;
       pill.title = `Click to inspect chunk #${cit.chunkIndex + 1} (score: ${cit.score})`;
       pill.addEventListener('click', () => openCitationPreview(cit));
       bar.appendChild(pill);
@@ -364,7 +388,8 @@ function renderDocumentList() {
 
     const metaEl = document.createElement('div');
     metaEl.className = 'doc-item-meta';
-    metaEl.textContent = `${doc.pages} page(s) • ${doc.chunk_count} chunk(s) indexed`;
+    const unitLabel = doc.type === 'audio' ? 'segment(s)' : 'page(s)';
+    metaEl.textContent = `[${(doc.type || 'pdf').toUpperCase()}] ${doc.pages} ${unitLabel} • ${doc.chunk_count} chunk(s) indexed`;
 
     li.appendChild(nameEl);
     li.appendChild(metaEl);
@@ -484,8 +509,18 @@ uploadForm.addEventListener('submit', async (event) => {
     return;
   }
 
-  if (!file.name.toLowerCase().endsWith('.pdf') || file.type !== 'application/pdf') {
-    showFeedback(uploadFeedback, 'Invalid file type. Only PDF (.pdf) files are allowed.', 'error');
+  const lowerName = file.name.toLowerCase();
+  const isAllowed =
+    lowerName.endsWith('.pdf') ||
+    ['.mp3', '.wav', '.m4a', '.ogg', '.webm', '.png', '.jpg', '.jpeg', '.webp'].some((ext) =>
+      lowerName.endsWith(ext)
+    );
+  if (!isAllowed) {
+    showFeedback(
+      uploadFeedback,
+      'Invalid file type. Allowed: PDF (.pdf), Audio (.mp3, .wav, .m4a), or Slide Image (.png, .jpg).',
+      'error'
+    );
     return;
   }
 

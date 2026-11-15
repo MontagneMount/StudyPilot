@@ -18,6 +18,9 @@ export function createApp({
   embedSearchQuery,
   askRag,
   generateQuestions,
+  transcribeAudio,
+  describeVisualPages,
+  describeImage,
 } = {}) {
   initDb(dbPath);
 
@@ -26,7 +29,16 @@ export function createApp({
   app.use(express.json({ limit: '1mb' }));
   app.use(express.static(path.join(__dirname, 'public')));
 
-  app.use('/api', createDocumentsRouter({ extractPages, embedChunks }));
+  app.use(
+    '/api',
+    createDocumentsRouter({
+      extractPages,
+      embedChunks,
+      transcribeAudio,
+      describeVisualPages,
+      describeImage,
+    })
+  );
   app.use('/api', createChatRouter({ embedSearchQuery, askRag }));
   app.use('/api', createQuizRouter({ generateQuestions }));
 
@@ -60,6 +72,6 @@ if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {
   const port = Number(process.env.PORT) || 3000;
   const app = createApp();
   app.listen(port, () => {
-    console.log(`StudyPilot M3 server running at http://localhost:${port}`);
+    console.log(`StudyPilot M4 server running at http://localhost:${port}`);
   });
 }

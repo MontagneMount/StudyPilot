@@ -1,3 +1,4 @@
+import fs from 'node:fs/promises';
 import { GoogleGenAI } from '@google/genai';
 import { AppError, withRetry } from '../utils/errors.js';
 
@@ -49,6 +50,62 @@ export const QUIZ_RESPONSE_SCHEMA = {
     },
   },
   required: ['questions'],
+};
+
+/**
+ * JSON Schema for M4 Lecture Audio Transcription with Timestamps:
+ * { segments: [{ timestamp: "MM:SS", text: "..." }] }
+ */
+export const TRANSCRIPT_RESPONSE_SCHEMA = {
+  type: 'object',
+  properties: {
+    segments: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          timestamp: {
+            type: 'string',
+            description: 'Start timestamp of the spoken segment in MM:SS format (e.g. "00:00", "01:45").',
+          },
+          text: {
+            type: 'string',
+            description: 'Transcript text for this segment.',
+          },
+        },
+        required: ['timestamp', 'text'],
+      },
+    },
+  },
+  required: ['segments'],
+};
+
+/**
+ * JSON Schema for M4 Visual Slide / Chart Understanding on Image-Heavy PDF Pages:
+ * { pages: [{ page: 1, visualDescription: "..." }] }
+ */
+export const VISUAL_PAGES_RESPONSE_SCHEMA = {
+  type: 'object',
+  properties: {
+    pages: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          page: {
+            type: 'integer',
+            description: '1-based page number in the PDF.',
+          },
+          visualDescription: {
+            type: 'string',
+            description: 'Detailed explanation of charts, axes, data values, diagrams, or images on this page.',
+          },
+        },
+        required: ['page', 'visualDescription'],
+      },
+    },
+  },
+  required: ['pages'],
 };
 
 export function getModelName() {
@@ -134,23 +191,25 @@ export async function embedQuery(queryText) {
 }
 
 /**
- * M2 RAG: Sends retrieved top-k chunks and the user's question to Gemini with a strict citation prompt.
+ * M2 + M4 RAG: Sends retrieved top-k chunks and the user's question to Gemini with strict citations
+ * (supporting both [p.12] for PDFs/slides and [02:15] for lecture audio transcripts).
  */
 export async function askQuestionWithRag({ question, chunks }) {
   const ai = getGeminiClient();
   const model = getModelName();
 
   const contextBlocks = chunks
-    .map(
-      (chunk, idx) =>
-        `--- Context Chunk #${idx + 1} (Document: "${chunk.filename}", Page: [p.${chunk.page}]) ---\n${chunk.content}`
-    )
+    .map((chunk, idx) => {
+      const label = chunk.citationLabel || `p.${chunk.page}`;
+      const kind = chunk.docType === 'audio' ? 'Audio Timestamp' : 'Page';
+      return `--- Context Chunk #${idx + 1} (Source: "${chunk.filename}", ${kind}: [${label}]) ---\n${chunk.content}`;
+    })
     .join('\n\n');
 
   const systemInstruction =
     'You are StudyPilot, an AI teaching assistant for university courses. ' +
-    'Answer only from the context; if not found, say so; cite pages like [p.12]. ' +
-    'When multiple documents are present, you may also mention the document name alongside the page citation [p.12].';
+    'Answer only from the context; if not found, say so; cite PDF pages like [p.12] and lecture audio timestamps like [02:15]. ' +
+    'When multiple sources are present, mention the source filename alongside the citation.';
 
   const userPrompt = `Course Material Context:\n\n${contextBlocks}\n\nStudent Question: ${question}`;
 
@@ -251,6 +310,167 @@ export async function generateQuizFromChunks({
       `Failed to generate quiz: ${error.message || 'Unknown Gemini error'}`,
       502,
       'GEMINI_QUIZ_ERROR'
+    );
+  }
+}
+
+/**
+ * M4 Multimodal Audio Transcription: Uploads/sends lecture audio to Gemini and produces
+ * timestamped transcript segments [{ timestamp: "MM:SS", text: "..." }].
+ */
+export async function transcribeAudioWithTimestamps(filePath, mimeType = 'audio/mpeg') {
+  const ai = getGeminiClient();
+  const model = getModelName();
+
+  try {
+    const uploadedAudio = await withRetry(() =>
+      ai.files.upload({
+        file: filePath,
+        config: { mime_type: mimeType },
+      })
+    );
+
+    const interaction = await withRetry(() =>
+      ai.interactions.create({
+        model,
+        system_instruction:
+          'You are StudyPilot, an academic lecture transcription assistant. ' +
+          'Transcribe the lecture audio accurately into logical segments of 20-60 seconds each, ' +
+          'recording the start timestamp in MM:SS format (e.g. "00:00", "00:45", "01:30").',
+        input: [
+          {
+            type: 'audio',
+            uri: uploadedAudio.uri,
+            mime_type: uploadedAudio.mimeType || uploadedAudio.mime_type || mimeType,
+          },
+          {
+            type: 'text',
+            text: 'Transcribe this lecture audio into timestamped segments (MM:SS).',
+          },
+        ],
+        response_format: {
+          type: 'text',
+          mime_type: 'application/json',
+          schema: TRANSCRIPT_RESPONSE_SCHEMA,
+        },
+      })
+    );
+
+    const rawText = interaction?.output_text?.trim();
+    if (!rawText) {
+      throw new AppError('Gemini returned an empty audio transcript.', 502, 'GEMINI_EMPTY_TRANSCRIPT');
+    }
+
+    const parsed = JSON.parse(rawText);
+    const segments = Array.isArray(parsed) ? parsed : parsed?.segments;
+    if (!Array.isArray(segments) || segments.length === 0) {
+      throw new AppError('Gemini did not return valid transcript segments.', 502, 'GEMINI_INVALID_TRANSCRIPT');
+    }
+
+    return segments;
+  } catch (error) {
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw new AppError(
+      `Failed to transcribe lecture audio: ${error.message || 'Unknown Gemini error'}`,
+      502,
+      'GEMINI_TRANSCRIBE_ERROR'
+    );
+  }
+}
+
+/**
+ * M4 Multimodal Slide Vision: Sends a PDF with image-heavy pages (charts, diagrams, figures)
+ * to Gemini so visual content on those pages is extracted and indexed alongside text.
+ */
+export async function describeVisualPdfPages(filePath, pageNumbers = []) {
+  if (!Array.isArray(pageNumbers) || pageNumbers.length === 0) {
+    return [];
+  }
+
+  const ai = getGeminiClient();
+  const model = getModelName();
+  const base64Pdf = await fs.readFile(filePath, { encoding: 'base64' });
+
+  const targetPagesList = pageNumbers.slice(0, 15).join(', ');
+
+  const interaction = await withRetry(() =>
+    ai.interactions.create({
+      model,
+      system_instruction:
+        'You are StudyPilot, an AI assistant specialized in reading charts, graphs, architecture diagrams, ' +
+        'and equations inside university lecture slides.',
+      input: [
+        {
+          type: 'document',
+          data: base64Pdf,
+          mime_type: 'application/pdf',
+        },
+        {
+          type: 'text',
+          text:
+            `Pages [${targetPagesList}] in this PDF are image-heavy or contain charts/diagrams. ` +
+            `For each of those pages, provide a thorough description of all charts, axis labels, data trends, ` +
+            `architecture blocks, formulas, and visual takeaways.`,
+        },
+      ],
+      response_format: {
+        type: 'text',
+        mime_type: 'application/json',
+        schema: VISUAL_PAGES_RESPONSE_SCHEMA,
+      },
+    })
+  );
+
+  const rawText = interaction?.output_text?.trim();
+  if (!rawText) return [];
+
+  const parsed = JSON.parse(rawText);
+  return Array.isArray(parsed?.pages) ? parsed.pages : [];
+}
+
+/**
+ * M4 Multimodal Image Slide Understanding: Analyzes an uploaded chart/slide image (.png, .jpg, .webp).
+ */
+export async function describeSlideImage(filePath, mimeType = 'image/png') {
+  const ai = getGeminiClient();
+  const model = getModelName();
+  const base64Image = await fs.readFile(filePath, { encoding: 'base64' });
+
+  try {
+    const interaction = await withRetry(() =>
+      ai.interactions.create({
+        model,
+        system_instruction:
+          'You are StudyPilot. Extract all text, formulas, chart axes, data points, and conceptual explanations from this lecture slide or chart image.',
+        input: [
+          {
+            type: 'image',
+            data: base64Image,
+            mime_type: mimeType,
+          },
+          {
+            type: 'text',
+            text: 'Provide a comprehensive breakdown of this lecture slide/chart image, including all visible labels, numbers, and takeaways.',
+          },
+        ],
+      })
+    );
+
+    const text = interaction?.output_text?.trim();
+    if (!text) {
+      throw new AppError('Gemini returned an empty description for the slide image.', 502, 'GEMINI_VISION_ERROR');
+    }
+    return text;
+  } catch (error) {
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw new AppError(
+      `Failed to analyze slide image: ${error.message || 'Unknown Gemini vision error'}`,
+      502,
+      'GEMINI_VISION_ERROR'
     );
   }
 }

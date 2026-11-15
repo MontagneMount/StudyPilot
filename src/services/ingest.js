@@ -3,8 +3,10 @@ import crypto from 'node:crypto';
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { AppError } from '../utils/errors.js';
 
+export const IMAGE_HEAVY_WORD_THRESHOLD = 30;
+
 /**
- * Computes SHA-256 hash of a file so we don't re-embed unchanged PDFs.
+ * Computes SHA-256 hash of a file so we don't re-embed unchanged files.
  */
 export async function computeFileHash(filePath) {
   const buffer = await fs.readFile(filePath);
@@ -13,7 +15,9 @@ export async function computeFileHash(filePath) {
 
 /**
  * Extracts text per page from a PDF file using pdfjs-dist.
- * Returns Array<{ page: number, text: string }>.
+ * Also flags pages with sparse selectable text (< 30 words) as `isImageHeavy: true`
+ * so M4 multimodal vision can inspect charts/diagrams on those slides.
+ * Returns Array<{ page: number, text: string, wordCount: number, isImageHeavy: boolean }>.
  */
 export async function extractPagesFromPdf(filePath) {
   const buffer = await fs.readFile(filePath);
@@ -40,9 +44,13 @@ export async function extractPagesFromPdf(filePath) {
         .replace(/\s+/g, ' ')
         .trim();
 
+      const wordCount = pageText ? pageText.split(' ').length : 0;
+
       pages.push({
         page: pageNum,
         text: pageText,
+        wordCount,
+        isImageHeavy: wordCount < IMAGE_HEAVY_WORD_THRESHOLD,
       });
     }
 
@@ -58,14 +66,75 @@ export async function extractPagesFromPdf(filePath) {
 }
 
 /**
+ * M4 Multimodal: When a PDF has image-heavy pages (charts, diagrams, sparse text),
+ * calls Gemini Vision to extract visual descriptions for those pages and merges them into page text.
+ */
+export async function enrichImageHeavyPages(
+  filePath,
+  pages,
+  { describeVisualPages } = {}
+) {
+  if (typeof describeVisualPages !== 'function') {
+    return pages;
+  }
+
+  const imageHeavyPages = pages
+    .filter((p) => {
+      const wc =
+        typeof p.wordCount === 'number'
+          ? p.wordCount
+          : p.text
+          ? p.text.trim().split(/\s+/).length
+          : 0;
+      return p.isImageHeavy === true || wc < IMAGE_HEAVY_WORD_THRESHOLD;
+    })
+    .map((p) => p.page);
+
+  if (imageHeavyPages.length === 0) {
+    return pages;
+  }
+
+  try {
+    const visualDescriptions = await describeVisualPages(filePath, imageHeavyPages);
+    if (!Array.isArray(visualDescriptions) || visualDescriptions.length === 0) {
+      return pages;
+    }
+
+    const descByPage = new Map();
+    for (const item of visualDescriptions) {
+      if (item?.page && item?.visualDescription) {
+        descByPage.set(Number(item.page), String(item.visualDescription).trim());
+      }
+    }
+
+    return pages.map((p) => {
+      const visualText = descByPage.get(Number(p.page));
+      if (!visualText) return p;
+
+      const combinedText = p.text
+        ? `${p.text}\n[Slide Visual / Chart Analysis]: ${visualText}`
+        : `[Slide Visual / Chart Analysis]: ${visualText}`;
+
+      return {
+        ...p,
+        text: combinedText,
+        visualEnriched: true,
+      };
+    });
+  } catch {
+    // Gracefully fall back to extracted text if vision enrichment fails
+    return pages;
+  }
+}
+
+/**
  * Splits extracted pages into overlapping chunks (~500-800 tokens, approximated at ~450 words per chunk
- * with ~80 words overlap). Keeps metadata { page, chunkIndex, content }.
+ * with ~80 words overlap). Keeps metadata { page, chunkIndex, citationLabel, content }.
  */
 export function chunkPages(
   pages,
   { maxTokens = 600, overlapTokens = 100 } = {}
 ) {
-  // 1 word is roughly 1.3 tokens; convert token targets to word counts
   const wordsPerChunk = Math.max(20, Math.round(maxTokens * 0.75));
   const overlapWords = Math.max(0, Math.min(wordsPerChunk - 5, Math.round(overlapTokens * 0.75)));
   const step = Math.max(1, wordsPerChunk - overlapWords);
@@ -73,17 +142,19 @@ export function chunkPages(
   const chunks = [];
   let globalChunkIndex = 0;
 
-  for (const { page, text } of pages) {
+  for (const { page, text, citationLabel } of pages) {
     const cleaned = (text || '').replace(/\s+/g, ' ').trim();
     if (!cleaned) {
       continue;
     }
 
+    const label = citationLabel || `p.${page}`;
     const words = cleaned.split(' ');
     if (words.length <= wordsPerChunk) {
       chunks.push({
         page,
         chunkIndex: globalChunkIndex++,
+        citationLabel: label,
         content: cleaned,
       });
       continue;
@@ -96,6 +167,7 @@ export function chunkPages(
       chunks.push({
         page,
         chunkIndex: globalChunkIndex++,
+        citationLabel: label,
         content: slice.join(' '),
       });
 
@@ -103,6 +175,34 @@ export function chunkPages(
         break;
       }
     }
+  }
+
+  return chunks;
+}
+
+/**
+ * M4 Audio Transcript Chunking: Converts timestamped segments [{ timestamp: "01:20", text: "..." }]
+ * into indexed chunks where citations use the timestamp label (e.g. "01:20").
+ */
+export function chunkAudioTranscript(segments = []) {
+  const chunks = [];
+  let chunkIndex = 0;
+
+  for (let i = 0; i < segments.length; i++) {
+    const seg = segments[i];
+    const text = String(seg?.text || '').replace(/\s+/g, ' ').trim();
+    if (!text) continue;
+
+    const rawTs = String(seg?.timestamp || '00:00').trim().replace(/^\[|\]$/g, '');
+    const normalizedTs = /^\d{1,2}:\d{2}(:\d{2})?$/.test(rawTs) ? rawTs : `00:${String(i * 30).padStart(2, '0')}`;
+
+    chunks.push({
+      page: chunkIndex + 1,
+      chunkIndex,
+      citationLabel: normalizedTs,
+      content: `[Audio Timestamp ${normalizedTs}] ${text}`,
+    });
+    chunkIndex += 1;
   }
 
   return chunks;

@@ -42,8 +42,10 @@ export function retrieveTopChunks({
     id: chunk.id,
     documentId: chunk.documentId,
     filename: chunk.filename,
+    docType: chunk.docType || 'pdf',
     page: chunk.page,
     chunkIndex: chunk.chunkIndex,
+    citationLabel: chunk.citationLabel || `p.${chunk.page}`,
     content: chunk.content,
     score: cosineSimilarity(queryEmbedding, chunk.embedding),
   }));
