@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { initDb } from './src/db/index.js';
 import { createDocumentsRouter } from './src/routes/documents.js';
 import { createChatRouter } from './src/routes/chat.js';
+import { createQuizRouter } from './src/routes/quiz.js';
 import { AppError } from './src/utils/errors.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -16,6 +17,7 @@ export function createApp({
   embedChunks,
   embedSearchQuery,
   askRag,
+  generateQuestions,
 } = {}) {
   initDb(dbPath);
 
@@ -26,6 +28,7 @@ export function createApp({
 
   app.use('/api', createDocumentsRouter({ extractPages, embedChunks }));
   app.use('/api', createChatRouter({ embedSearchQuery, askRag }));
+  app.use('/api', createQuizRouter({ generateQuestions }));
 
   // 404 handler for unknown /api routes
   app.use('/api/*', (req, res, next) => {
@@ -57,6 +60,6 @@ if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {
   const port = Number(process.env.PORT) || 3000;
   const app = createApp();
   app.listen(port, () => {
-    console.log(`StudyPilot M2 server running at http://localhost:${port}`);
+    console.log(`StudyPilot M3 server running at http://localhost:${port}`);
   });
 }

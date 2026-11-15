@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>StudyPilot — AI Course Assistant (M2: RAG with Citations)</title>
+  <title>StudyPilot — AI Course Assistant (M3: Quiz &amp; Weak-Point Tracking)</title>
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
@@ -11,16 +11,16 @@
     <div class="container header-inner">
       <div>
         <h1>StudyPilot</h1>
-        <p class="subtitle">AI Teaching Assistant for University Course Materials (M2: RAG with Page Citations)</p>
+        <p class="subtitle">AI Teaching Assistant for University Courses (M3: RAG, Quiz &amp; Weak-Point Tracking)</p>
       </div>
       <span class="badge" id="status-badge">0 Documents Indexed</span>
     </div>
   </header>
 
   <main class="container main-grid">
-    <!-- Left Column: Course & Multi-Document Management -->
+    <!-- Left Column: Course, Documents & Weak-Point Dashboard -->
     <aside class="sidebar-col">
-      <!-- Course Selection -->
+      <!-- 1. Course Selection -->
       <section class="card" aria-labelledby="course-heading">
         <h2 id="course-heading">1. Select Course</h2>
         <div class="field">
@@ -51,7 +51,7 @@
         </form>
       </section>
 
-      <!-- Upload PDF -->
+      <!-- 2. Upload PDF -->
       <section class="card" aria-labelledby="upload-heading">
         <h2 id="upload-heading">2. Upload Course PDFs</h2>
 
@@ -87,57 +87,122 @@
           </ul>
         </div>
       </section>
+
+      <!-- 3. Weak-Point Tracking Dashboard -->
+      <section class="card" aria-labelledby="weak-points-heading">
+        <h2 id="weak-points-heading">3. Weak-Point Dashboard</h2>
+        <p class="hint">Topics ranked by quiz error rate so you know what to review first.</p>
+
+        <div tabindex="0" role="region" aria-labelledby="weak-topics-caption" class="table-wrapper">
+          <table class="weak-table" id="weak-topics-table">
+            <caption id="weak-topics-caption" class="sr-only">Weak topics ranked by quiz error rate</caption>
+            <thead>
+              <tr>
+                <th scope="col">Topic</th>
+                <th scope="col">Error Rate</th>
+                <th scope="col">Accuracy</th>
+                <th scope="col">Attempts</th>
+              </tr>
+            </thead>
+            <tbody id="weak-topics-tbody">
+              <tr>
+                <td colspan="4" class="doc-empty">Complete a quiz question to track topic accuracy.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
     </aside>
 
-    <!-- Right Column: RAG Q&A with Clickable Citations -->
-    <section class="card chat-card" aria-labelledby="ask-heading">
-      <div class="chat-card-header">
-        <h2 id="ask-heading">3. Ask with Page-Level Citations</h2>
-        <div class="scope-selector">
-          <label for="doc-scope-select">Search Scope:</label>
-          <select id="doc-scope-select" class="select-input select-sm">
-            <option value="">All Documents in Course</option>
-          </select>
-        </div>
-      </div>
-
-      <div id="chat-history" class="chat-history" aria-live="polite">
-        <p class="empty-state" id="empty-chat-msg">
-          Upload one or more course PDFs on the left, then ask a question. Answers include clickable <code>[p.X]</code> citations!
-        </p>
-      </div>
-
-      <form id="ask-form" class="ask-form" novalidate>
-        <div class="field">
-          <label for="question-input">Your Question</label>
-          <span id="question-hint" class="hint">
-            Tip: Click any <code>[p.12]</code> citation badge in the answer to inspect the exact source chunk from that page.
-          </span>
-          <textarea
-            id="question-input"
-            name="question"
-            rows="3"
-            required
-            minlength="2"
-            placeholder="Ask a question about your uploaded course materials..."
-            aria-describedby="question-hint"
-            aria-errormessage="question-error"
-            disabled
-          ></textarea>
-          <div id="question-error" class="error-msg">
-            <span aria-hidden="true">❌</span> Please enter a question (at least 2 characters).
+    <!-- Right Column: RAG Q&A + Auto-Generated Quiz -->
+    <div class="content-col">
+      <!-- 4. RAG Q&A with Clickable Citations -->
+      <section class="card chat-card" aria-labelledby="ask-heading">
+        <div class="chat-card-header">
+          <h2 id="ask-heading">4. Ask with Page-Level Citations</h2>
+          <div class="scope-selector">
+            <label for="doc-scope-select">Search Scope:</label>
+            <select id="doc-scope-select" class="select-input select-sm">
+              <option value="">All Documents in Course</option>
+            </select>
           </div>
         </div>
 
-        <div class="ask-actions">
-          <button type="submit" id="ask-btn" class="btn btn-primary" disabled>
-            Ask StudyPilot (RAG)
-          </button>
+        <div id="chat-history" class="chat-history" aria-live="polite">
+          <p class="empty-state" id="empty-chat-msg">
+            Upload one or more course PDFs on the left, then ask a question. Answers include clickable <code>[p.X]</code> citations!
+          </p>
         </div>
-      </form>
 
-      <div id="ask-feedback" class="feedback" role="alert" hidden></div>
-    </section>
+        <form id="ask-form" class="ask-form" novalidate>
+          <div class="field">
+            <label for="question-input">Your Question</label>
+            <span id="question-hint" class="hint">
+              Tip: Click any <code>[p.12]</code> citation badge in the answer to inspect the exact source chunk from that page.
+            </span>
+            <textarea
+              id="question-input"
+              name="question"
+              rows="2"
+              required
+              minlength="2"
+              placeholder="Ask a question about your uploaded course materials..."
+              aria-describedby="question-hint"
+              aria-errormessage="question-error"
+              disabled
+            ></textarea>
+            <div id="question-error" class="error-msg">
+              <span aria-hidden="true">❌</span> Please enter a question (at least 2 characters).
+            </div>
+          </div>
+
+          <div class="ask-actions">
+            <button type="submit" id="ask-btn" class="btn btn-primary" disabled>
+              Ask StudyPilot (RAG)
+            </button>
+          </div>
+        </form>
+
+        <div id="ask-feedback" class="feedback" role="alert" hidden></div>
+      </section>
+
+      <!-- 5. Quiz Generator & Interactive Practice -->
+      <section class="card quiz-card" aria-labelledby="quiz-heading">
+        <div class="chat-card-header">
+          <h2 id="quiz-heading">5. Auto-Generate Chapter Quiz</h2>
+          <span class="hint" style="margin:0">Powered by Gemini Structured Output (JSON Schema)</span>
+        </div>
+
+        <form id="quiz-form" class="quiz-controls" novalidate>
+          <div class="quiz-control-group">
+            <label for="quiz-topic-input">Focus Topic (optional)</label>
+            <input
+              type="text"
+              id="quiz-topic-input"
+              placeholder="e.g. Backpropagation, Transformers..."
+            />
+          </div>
+
+          <div class="quiz-control-group quiz-count-group">
+            <label for="quiz-count-select">Questions</label>
+            <select id="quiz-count-select" class="select-input">
+              <option value="3" selected>3 Questions</option>
+              <option value="5">5 Questions</option>
+            </select>
+          </div>
+
+          <button type="submit" id="generate-quiz-btn" class="btn btn-primary" disabled>
+            Generate Quiz
+          </button>
+        </form>
+
+        <div id="quiz-feedback" class="feedback" role="status" aria-live="polite" hidden></div>
+
+        <div id="quiz-list" class="quiz-list">
+          <p class="empty-state">No quiz questions generated for this course yet.</p>
+        </div>
+      </section>
+    </div>
   </main>
 
   <!-- Citation Source Preview Modal Dialog -->

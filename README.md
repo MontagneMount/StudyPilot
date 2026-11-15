@@ -2,22 +2,27 @@
 
 **StudyPilot** is an AI teaching assistant for university course materials, powered by Google Gemini (`@google/genai`).
 
-## Current Milestone: M2 — RAG with Page-Level Citations
+## Completed Milestones: M1 – M3
 
-- **Multi-Course & Multi-Document Support**: Organize PDFs by course (`courses`, `documents`, `chunks` tables persisted in SQLite via Node.js built-in `node:sqlite`).
-- **Per-Page PDF Parsing & Chunking**: Extracts text page-by-page with `pdfjs-dist`, splits into overlapping chunks (~500–800 tokens), and retains `{ documentId, page, chunkIndex }` metadata.
-- **Embedding & Caching**: Embeds chunks with `gemini-embedding-001` (`ai.models.embedContent`) and caches file hashes (SHA-256) so unchanged PDFs are never re-embedded.
-- **Top-K Vector Retrieval & Strict Citations**: Embeds each question, retrieves the most relevant chunks via cosine similarity, and answers strictly from context with clickable `[p.12]` page citations in the UI.
+- **M1 — MVP: PDF Q&A**: PDF upload validation (`<= 20 MB`, MIME + `%PDF-` header check) and Gemini Q&A.
+- **M2 — RAG with Page Citations**: Per-page PDF parsing (`pdfjs-dist`), overlapping chunking, `gemini-embedding-001` vectors stored in SQLite (`node:sqlite`), SHA-256 embedding cache, Top-K cosine similarity retrieval, and clickable `[p.12]` citations.
+- **M3 — Quiz & Weak-Point Tracking**:
+  - Auto-generates 4-option multiple-choice questions using **Gemini Structured Output (`response_format` JSON Schema)**: `{ question, options[4], answerIndex, explanation, topic, sourcePage }`.
+  - Records every student attempt in `quiz_attempts` and computes per-topic accuracy & error rate.
+  - Displays a live **Weak-Point Tracking Dashboard** ranking topics by error rate descending.
 
 ```mermaid
 flowchart LR
   User["Student (Browser)"] -->|POST /api/upload| Ingest["pdfjs-dist + Chunking"]
-  Ingest -->|ai.models.embedContent| Embed["gemini-embedding-001"]
-  Embed -->|Save chunks + vectors| DB[("SQLite (courses, documents, chunks)")]
+  Ingest -->|ai.models.embedContent| DB[("SQLite (courses, documents, chunks, quiz_questions, quiz_attempts)")]
   User -->|POST /api/ask| Retrieve["Cosine Similarity Top-K"]
   DB --> Retrieve
-  Retrieve -->|Context + Strict Citation Prompt| Gemini["Gemini 3.8 Flash"]
-  Gemini -->|Answer + Clickable [p.X]| User
+  Retrieve -->|Strict Citation Prompt| Gemini["Gemini 3.8 Flash"]
+  User -->|POST /api/quiz/generate| QuizGen["Structured Output (JSON Schema)"]
+  DB --> QuizGen
+  QuizGen --> Gemini
+  User -->|POST /api/quiz/attempt| WeakPoints["Weak-Point Dashboard (Error Rate Ranking)"]
+  WeakPoints --> DB
 ```
 
 ## Setup & Run (Windows PowerShell)

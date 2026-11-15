@@ -16,8 +16,11 @@ const state = {
   courses: [],
   documents: [],
   selectedDocumentId: '', // '' means search across all documents in the active course
+  questions: [],
+  weakTopics: [],
   isUploading: false,
   isAsking: false,
+  isGeneratingQuiz: false,
 };
 
 const courseSelect = document.getElementById('course-select');
@@ -32,12 +35,21 @@ const documentList = document.getElementById('document-list');
 const statusBadge = document.getElementById('status-badge');
 const docScopeSelect = document.getElementById('doc-scope-select');
 
+const weakTopicsTbody = document.getElementById('weak-topics-tbody');
+
 const askForm = document.getElementById('ask-form');
 const questionInput = document.getElementById('question-input');
 const askBtn = document.getElementById('ask-btn');
 const askFeedback = document.getElementById('ask-feedback');
 const chatHistory = document.getElementById('chat-history');
 const emptyChatMsg = document.getElementById('empty-chat-msg');
+
+const quizForm = document.getElementById('quiz-form');
+const quizTopicInput = document.getElementById('quiz-topic-input');
+const quizCountSelect = document.getElementById('quiz-count-select');
+const generateQuizBtn = document.getElementById('generate-quiz-btn');
+const quizFeedback = document.getElementById('quiz-feedback');
+const quizList = document.getElementById('quiz-list');
 
 const citationDialog = document.getElementById('citation-dialog');
 const citationDialogTitle = document.getElementById('citation-dialog-title');
@@ -148,7 +160,6 @@ function appendMessage(role, text, citations = []) {
   wrapper.appendChild(label);
   wrapper.appendChild(body);
 
-  // Also display retrieved source chunk badges at the bottom of assistant messages
   if (role === 'assistant' && citations.length > 0) {
     const bar = document.createElement('div');
     bar.className = 'citations-bar';
@@ -175,6 +186,151 @@ function appendMessage(role, text, citations = []) {
   chatHistory.scrollTop = chatHistory.scrollHeight;
 }
 
+function renderWeakTopics() {
+  weakTopicsTbody.textContent = '';
+
+  if (!state.weakTopics || state.weakTopics.length === 0) {
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+    td.colSpan = 4;
+    td.className = 'doc-empty';
+    td.textContent = 'Complete a quiz question to track topic accuracy.';
+    tr.appendChild(td);
+    weakTopicsTbody.appendChild(tr);
+    return;
+  }
+
+  for (const item of state.weakTopics) {
+    const tr = document.createElement('tr');
+
+    const th = document.createElement('th');
+    th.scope = 'row';
+    th.textContent = item.topic;
+
+    const errTd = document.createElement('td');
+    const errBadge = document.createElement('span');
+    errBadge.className = `error-rate-pill ${item.errorRate >= 50 ? 'high' : 'low'}`;
+    errBadge.textContent = `${item.errorRate}%`;
+    errTd.appendChild(errBadge);
+
+    const accTd = document.createElement('td');
+    accTd.textContent = `${item.accuracy}%`;
+
+    const countTd = document.createElement('td');
+    countTd.textContent = `${item.correctAttempts}/${item.totalAttempts} correct`;
+
+    tr.appendChild(th);
+    tr.appendChild(errTd);
+    tr.appendChild(accTd);
+    tr.appendChild(countTd);
+    weakTopicsTbody.appendChild(tr);
+  }
+}
+
+function renderQuizQuestions() {
+  quizList.textContent = '';
+
+  if (!state.questions || state.questions.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'empty-state';
+    empty.textContent = 'No quiz questions generated for this course yet.';
+    quizList.appendChild(empty);
+    return;
+  }
+
+  state.questions.forEach((q, qIdx) => {
+    const card = document.createElement('div');
+    card.className = 'quiz-item';
+
+    const header = document.createElement('div');
+    header.className = 'quiz-item-header';
+
+    const topicSpan = document.createElement('span');
+    topicSpan.className = 'topic-tag';
+    topicSpan.textContent = q.topic;
+
+    const pageSpan = document.createElement('span');
+    pageSpan.className = 'citation-pill';
+    pageSpan.textContent = `[p.${q.sourcePage}]`;
+
+    header.appendChild(topicSpan);
+    header.appendChild(pageSpan);
+
+    const qText = document.createElement('div');
+    qText.className = 'quiz-question-text';
+    qText.textContent = `Q${qIdx + 1}. ${q.question}`;
+
+    const optionsContainer = document.createElement('div');
+    optionsContainer.className = 'quiz-options';
+
+    const explanationBox = document.createElement('div');
+    explanationBox.className = 'quiz-explanation';
+    explanationBox.hidden = true;
+
+    const optionButtons = [];
+
+    q.options.forEach((optText, optIdx) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'quiz-option-btn';
+      btn.textContent = `${String.fromCharCode(65 + optIdx)}. ${optText}`;
+
+      btn.addEventListener('click', async () => {
+        optionButtons.forEach((b) => {
+          b.disabled = true;
+        });
+
+        try {
+          const res = await fetch('/api/quiz/attempt', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              questionId: q.id,
+              userAnswer: optIdx,
+            }),
+          });
+          const result = await res.json();
+          if (!res.ok) {
+            throw new Error(result.error || 'Failed to submit answer.');
+          }
+
+          optionButtons.forEach((b, idx) => {
+            if (idx === result.correctAnswerIndex) {
+              b.classList.add('correct');
+            } else if (idx === optIdx && !result.isCorrect) {
+              b.classList.add('wrong');
+            }
+          });
+
+          explanationBox.textContent =
+            (result.isCorrect ? '✅ Correct! ' : '❌ Incorrect. ') +
+            `${result.explanation} (Source: [p.${result.sourcePage}])`;
+          explanationBox.hidden = false;
+
+          if (result.weakTopics) {
+            state.weakTopics = result.weakTopics;
+            renderWeakTopics();
+          }
+        } catch (err) {
+          showFeedback(quizFeedback, err.message, 'error');
+          optionButtons.forEach((b) => {
+            b.disabled = false;
+          });
+        }
+      });
+
+      optionButtons.push(btn);
+      optionsContainer.appendChild(btn);
+    });
+
+    card.appendChild(header);
+    card.appendChild(qText);
+    card.appendChild(optionsContainer);
+    card.appendChild(explanationBox);
+    quizList.appendChild(card);
+  });
+}
+
 function renderDocumentList() {
   documentList.textContent = '';
   docScopeSelect.textContent = '';
@@ -194,6 +350,7 @@ function renderDocumentList() {
     statusBadge.classList.remove('active');
     questionInput.disabled = true;
     askBtn.disabled = true;
+    generateQuizBtn.disabled = true;
     return;
   }
 
@@ -224,6 +381,7 @@ function renderDocumentList() {
   statusBadge.classList.add('active');
   questionInput.disabled = false;
   askBtn.disabled = false;
+  generateQuizBtn.disabled = false;
 }
 
 async function loadCourses() {
@@ -264,10 +422,25 @@ async function loadDocuments() {
   }
 }
 
+async function loadQuizAndWeakTopics() {
+  try {
+    const res = await fetch(`/api/quiz?courseId=${encodeURIComponent(state.courseId)}`);
+    const data = await res.json();
+    if (!res.ok) return;
+    state.questions = data.questions || [];
+    state.weakTopics = data.weakTopics || [];
+    renderQuizQuestions();
+    renderWeakTopics();
+  } catch {
+    // Ignore initial load error
+  }
+}
+
 courseSelect.addEventListener('change', async () => {
   state.courseId = courseSelect.value;
   state.selectedDocumentId = '';
   await loadDocuments();
+  await loadQuizAndWeakTopics();
 });
 
 docScopeSelect.addEventListener('change', () => {
@@ -295,6 +468,7 @@ courseForm.addEventListener('submit', async (event) => {
     state.selectedDocumentId = '';
     await loadCourses();
     await loadDocuments();
+    await loadQuizAndWeakTopics();
   } catch (err) {
     showFeedback(uploadFeedback, err.message, 'error');
   }
@@ -420,6 +594,57 @@ askForm.addEventListener('submit', async (event) => {
   }
 });
 
+quizForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  hideFeedback(quizFeedback);
+
+  if (state.documents.length === 0) {
+    showFeedback(quizFeedback, 'Upload a PDF before generating a quiz.', 'error');
+    return;
+  }
+
+  state.isGeneratingQuiz = true;
+  generateQuizBtn.disabled = true;
+  generateQuizBtn.textContent = 'Generating...';
+  showFeedback(quizFeedback, 'Generating structured multiple-choice questions with Gemini...', 'info');
+
+  try {
+    const payload = {
+      courseId: state.courseId,
+      count: Number(quizCountSelect.value) || 3,
+      topic: quizTopicInput.value.trim(),
+    };
+    if (state.selectedDocumentId) {
+      payload.documentId = state.selectedDocumentId;
+    }
+
+    const res = await fetch('/api/quiz/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Failed to generate quiz.');
+    }
+
+    await loadQuizAndWeakTopics();
+    showFeedback(
+      quizFeedback,
+      `Generated ${data.questions.length} multiple-choice question(s)! Click an option below to test yourself.`,
+      'success'
+    );
+  } catch (err) {
+    showFeedback(quizFeedback, err.message, 'error');
+  } finally {
+    state.isGeneratingQuiz = false;
+    generateQuizBtn.disabled = false;
+    generateQuizBtn.textContent = 'Generate Quiz';
+  }
+});
+
 // Initialize on load
 await loadCourses();
 await loadDocuments();
+await loadQuizAndWeakTopics();

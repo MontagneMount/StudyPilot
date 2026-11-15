@@ -40,7 +40,7 @@ body {
 }
 
 .container {
-  max-width: 1160px;
+  max-width: 1220px;
   margin: 0 auto;
   padding: 0 1.25rem;
 }
@@ -89,19 +89,20 @@ body {
 
 .main-grid {
   display: grid;
-  grid-template-columns: 380px 1fr;
+  grid-template-columns: 400px 1fr;
   gap: 1.5rem;
   padding-bottom: 2.5rem;
   align-items: start;
 }
 
-.sidebar-col {
+.sidebar-col,
+.content-col {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
 }
 
-@media (max-width: 860px) {
+@media (max-width: 900px) {
   .main-grid {
     grid-template-columns: 1fr;
   }
@@ -315,6 +316,107 @@ textarea:user-valid {
   font-style: italic;
 }
 
+/* Responsive Weak-Point Tracking Table */
+.table-wrapper {
+  overflow: auto;
+  max-inline-size: 100%;
+  max-block-size: min(320px, 60vh);
+  container-type: inline-size;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.weak-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.85rem;
+  --label-2: "Error Rate";
+  --label-3: "Accuracy";
+  --label-4: "Attempts";
+}
+
+.weak-table th,
+.weak-table td {
+  padding: 0.55rem 0.7rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.weak-table thead {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 1;
+  background: #f1f5f9;
+}
+
+.weak-table tbody th {
+  position: sticky;
+  inset-inline-start: 0;
+  background: var(--surface);
+  font-weight: 600;
+}
+
+.error-rate-pill {
+  display: inline-block;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.78rem;
+}
+
+.error-rate-pill.high {
+  background: var(--error-bg);
+  color: var(--error);
+}
+
+.error-rate-pill.low {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+@container (width < 340px) {
+  .weak-table,
+  .weak-table thead,
+  .weak-table tbody,
+  .weak-table tr,
+  .weak-table th,
+  .weak-table td {
+    display: block;
+  }
+
+  .weak-table thead {
+    display: none;
+  }
+
+  .weak-table tr {
+    margin-block-end: 0.75rem;
+    border: 1px solid var(--border);
+  }
+
+  .weak-table tbody th {
+    position: sticky;
+    inset-block-start: 0;
+    z-index: 2;
+    background: #f1f5f9;
+  }
+
+  .weak-table td:nth-child(2)::before {
+    content: var(--label-2) ": ";
+    font-weight: 600;
+  }
+
+  .weak-table td:nth-child(3)::before {
+    content: var(--label-3) ": ";
+    font-weight: 600;
+  }
+
+  .weak-table td:nth-child(4)::before {
+    content: var(--label-4) ": ";
+    font-weight: 600;
+  }
+}
+
 /* Chat Section */
 .chat-card {
   display: flex;
@@ -344,8 +446,8 @@ textarea:user-valid {
 
 .chat-history {
   flex: 1;
-  min-height: 360px;
-  max-height: 520px;
+  min-height: 260px;
+  max-height: 400px;
   overflow-y: auto;
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -361,7 +463,7 @@ textarea:user-valid {
   margin: auto;
   text-align: center;
   color: var(--text-muted);
-  font-size: 0.925rem;
+  font-size: 0.9rem;
   max-width: 420px;
 }
 
@@ -431,6 +533,115 @@ textarea:user-valid {
   font-weight: 600;
   color: var(--text-muted);
   margin-right: 0.25rem;
+}
+
+/* Quiz Section */
+.quiz-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-end;
+  margin-bottom: 1rem;
+}
+
+.quiz-control-group {
+  flex: 1;
+  min-width: 180px;
+}
+
+.quiz-count-group {
+  flex: 0 0 150px;
+  min-width: 140px;
+}
+
+.quiz-control-group label {
+  display: block;
+  font-size: 0.825rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.quiz-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.quiz-item {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+  background: #f8fafc;
+}
+
+.quiz-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.topic-tag {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: #e0e7ff;
+  color: #3730a3;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.quiz-question-text {
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  font-size: 0.95rem;
+}
+
+.quiz-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.quiz-option-btn {
+  text-align: left;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.quiz-option-btn:hover:not(:disabled) {
+  border-color: var(--primary);
+  background: #eff6ff;
+}
+
+.quiz-option-btn.correct {
+  border-color: var(--success);
+  background: var(--success-bg);
+  color: var(--success);
+  font-weight: 600;
+}
+
+.quiz-option-btn.wrong {
+  border-color: var(--error);
+  background: var(--error-bg);
+  color: var(--error);
+}
+
+.quiz-explanation {
+  margin-top: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  background: var(--surface);
+  border-left: 4px solid var(--primary);
 }
 
 /* Citation Modal Dialog */
