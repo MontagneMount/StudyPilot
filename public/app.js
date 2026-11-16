@@ -51,6 +51,15 @@ const generateQuizBtn = document.getElementById('generate-quiz-btn');
 const quizFeedback = document.getElementById('quiz-feedback');
 const quizList = document.getElementById('quiz-list');
 
+const plannerForm = document.getElementById('planner-form');
+const plannerInput = document.getElementById('planner-input');
+const plannerBtn = document.getElementById('planner-btn');
+const plannerFeedback = document.getElementById('planner-feedback');
+const plannerResult = document.getElementById('planner-result');
+const plannerToolsBar = document.getElementById('planner-tools-bar');
+const plannerReply = document.getElementById('planner-reply');
+const plannerSchedule = document.getElementById('planner-schedule');
+
 const citationDialog = document.getElementById('citation-dialog');
 const citationDialogTitle = document.getElementById('citation-dialog-title');
 const citationDialogMeta = document.getElementById('citation-dialog-meta');
@@ -676,6 +685,121 @@ quizForm.addEventListener('submit', async (event) => {
     state.isGeneratingQuiz = false;
     generateQuizBtn.disabled = false;
     generateQuizBtn.textContent = 'Generate Quiz';
+  }
+});
+
+function renderPlannerOutput(data) {
+  plannerToolsBar.textContent = '';
+  plannerSchedule.textContent = '';
+
+  const toolCalls = data.toolCalls || [];
+  if (toolCalls.length > 0) {
+    const label = document.createElement('span');
+    label.className = 'citations-bar-label';
+    label.textContent = 'Agent Tool Calls:';
+    plannerToolsBar.appendChild(label);
+
+    for (const tc of toolCalls) {
+      const badge = document.createElement('span');
+      badge.className = 'topic-tag';
+      const argStr =
+        tc.arguments && Object.keys(tc.arguments).length > 0
+          ? JSON.stringify(tc.arguments)
+          : '';
+      badge.textContent = `${tc.name}(${argStr})`;
+      plannerToolsBar.appendChild(badge);
+    }
+  }
+
+  plannerReply.textContent = data.reply || '';
+
+  const schedule = data.plan?.schedule || [];
+  for (const dayItem of schedule) {
+    const card = document.createElement('div');
+    card.className = 'day-card';
+
+    const header = document.createElement('div');
+    header.className = 'day-card-header';
+
+    const dayTitle = document.createElement('span');
+    dayTitle.textContent = `Day ${dayItem.day} (${dayItem.hours}h)`;
+
+    const prio = document.createElement('span');
+    prio.className = `error-rate-pill ${dayItem.priority === 'High' ? 'high' : 'low'}`;
+    prio.textContent = dayItem.priority;
+
+    header.appendChild(dayTitle);
+    header.appendChild(prio);
+
+    const topicEl = document.createElement('div');
+    topicEl.className = 'day-card-topic';
+    topicEl.textContent = dayItem.focusTopic;
+
+    const reasonEl = document.createElement('div');
+    reasonEl.className = 'day-card-reason';
+    reasonEl.textContent = dayItem.reason;
+
+    const tasksUl = document.createElement('ul');
+    tasksUl.className = 'day-card-tasks';
+    for (const taskText of dayItem.tasks || []) {
+      const li = document.createElement('li');
+      li.textContent = taskText;
+      tasksUl.appendChild(li);
+    }
+
+    card.appendChild(header);
+    card.appendChild(topicEl);
+    card.appendChild(reasonEl);
+    card.appendChild(tasksUl);
+    plannerSchedule.appendChild(card);
+  }
+
+  plannerResult.hidden = false;
+}
+
+plannerForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  hideFeedback(plannerFeedback);
+
+  const prompt = plannerInput.value.trim();
+  if (!prompt) {
+    showFeedback(plannerFeedback, 'Please enter your study plan request.', 'error');
+    return;
+  }
+
+  plannerBtn.disabled = true;
+  plannerBtn.textContent = 'Agent Planning...';
+  showFeedback(
+    plannerFeedback,
+    'Study Planner Agent is inspecting weak topics, course outline, and building your schedule...',
+    'info'
+  );
+
+  try {
+    const res = await fetch('/api/plan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        courseId: state.courseId,
+        prompt,
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Failed to generate study plan.');
+    }
+
+    renderPlannerOutput(data);
+    if (data.generatedQuizzes?.length > 0) {
+      await loadQuizAndWeakTopics();
+    }
+    hideFeedback(plannerFeedback);
+  } catch (err) {
+    showFeedback(plannerFeedback, err.message, 'error');
+  } finally {
+    plannerBtn.disabled = false;
+    plannerBtn.textContent = 'Run Planner Agent';
   }
 });
 

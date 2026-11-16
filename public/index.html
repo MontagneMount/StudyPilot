@@ -204,6 +204,49 @@
           <p class="empty-state">No quiz questions generated for this course yet.</p>
         </div>
       </section>
+
+      <!-- 6. Agent: Study Planner (Gemini Function Calling) -->
+      <section class="card planner-card" aria-labelledby="planner-heading">
+        <div class="chat-card-header">
+          <h2 id="planner-heading">6. Agent: Personalized Study Planner</h2>
+          <span class="hint" style="margin:0">Autonomous Gemini Function Calling Agent</span>
+        </div>
+
+        <form id="planner-form" novalidate>
+          <div class="field">
+            <label for="planner-input">Tell the Study Planner Agent your exam schedule</label>
+            <span id="planner-hint" class="hint">
+              Tools available to Agent: <code>getWeakTopics()</code>, <code>getCourseOutline()</code>, <code>createStudyPlan(days, hoursPerDay)</code>, <code>generateQuiz(topic)</code>
+            </span>
+            <div class="input-row">
+              <input
+                type="text"
+                id="planner-input"
+                value="I have an exam in 7 days, 2 hours a day"
+                placeholder="e.g. I have an exam in 7 days, 2 hours a day"
+                required
+                minlength="5"
+                aria-describedby="planner-hint"
+                aria-errormessage="planner-error"
+              />
+              <button type="submit" id="planner-btn" class="btn btn-primary">
+                Run Planner Agent
+              </button>
+            </div>
+            <div id="planner-error" class="error-msg">
+              <span aria-hidden="true">❌</span> Please describe your study timeframe (at least 5 characters).
+            </div>
+          </div>
+        </form>
+
+        <div id="planner-feedback" class="feedback" role="status" aria-live="polite" hidden></div>
+
+        <div id="planner-result" class="planner-result" hidden>
+          <div id="planner-tools-bar" class="citations-bar" style="margin-top:0; border-top:none; padding-top:0; margin-bottom:0.85rem;"></div>
+          <div id="planner-reply" class="planner-reply"></div>
+          <div id="planner-schedule" class="planner-schedule"></div>
+        </div>
+      </section>
     </div>
   </main>
 
