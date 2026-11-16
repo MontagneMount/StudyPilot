@@ -60,6 +60,23 @@ body {
   gap: 1rem;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.user-pill {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--primary);
+  background: #eff6ff;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid #bfdbfe;
+}
+
 .app-header h1 {
   margin: 0;
   font-size: 1.5rem;

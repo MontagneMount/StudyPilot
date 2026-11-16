@@ -22,16 +22,20 @@ export function createChatRouter({
         courseId = DEFAULT_COURSE_ID,
         question,
         topK = 4,
+        mode = 'hybrid',
       } = req.body || {};
 
       if (!question || typeof question !== 'string' || !question.trim()) {
         throw new AppError('Question cannot be empty.', 400, 'EMPTY_QUESTION');
       }
 
+      if (question.length > 2000) {
+        throw new AppError('Question is too long (maximum 2000 characters).', 400, 'QUESTION_TOO_LONG');
+      }
+
       const targetDocId = (documentId || fileId || '').toString().trim() || null;
       const targetCourseId = (courseId || DEFAULT_COURSE_ID).toString().trim();
 
-      // Require either a specific documentId/fileId OR course scope with at least one document
       if (targetDocId) {
         const doc = getDocumentById(targetDocId);
         if (!doc) {
@@ -59,7 +63,9 @@ export function createChatRouter({
         courseId: targetCourseId,
         documentId: targetDocId,
         queryEmbedding,
+        queryText: question.trim(),
         topK: k,
+        mode,
       });
 
       if (topChunks.length === 0) {

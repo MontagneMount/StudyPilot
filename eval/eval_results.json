@@ -1,0 +1,18 @@
+{
+  "evaluatedAt": "2026-11-16T05:10:32.020Z",
+  "questionCount": 50,
+  "baseline": {
+    "name": "Baseline (No Overlap, Top-2, Vector-Only)",
+    "retrievalHitRate": 38,
+    "answerAccuracy": 32
+  },
+  "optimized": {
+    "name": "Optimized (Overlapping Chunks, Top-4, Hybrid Search)",
+    "retrievalHitRate": 94,
+    "answerAccuracy": 90
+  },
+  "improvement": {
+    "retrievalHitRateDelta": 56,
+    "answerAccuracyDelta": 58
+  }
+}

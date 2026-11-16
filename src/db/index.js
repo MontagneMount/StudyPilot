@@ -26,10 +26,19 @@ export function initDb(customPath) {
   db.exec('PRAGMA foreign_keys = ON;');
 
   db.exec(`
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      email TEXT UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS courses (
       id TEXT PRIMARY KEY,
+      user_id TEXT,
       name TEXT NOT NULL,
-      created_at TEXT NOT NULL
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
     );
 
     CREATE TABLE IF NOT EXISTS documents (
@@ -78,9 +87,14 @@ export function initDb(customPath) {
     );
   `);
 
-  // Backward-compatible migration if chunks table was created in M2 without citation_label
+  // Backward-compatible migrations for earlier milestone DB files
   try {
     db.exec('ALTER TABLE chunks ADD COLUMN citation_label TEXT;');
+  } catch {
+    // Column already exists
+  }
+  try {
+    db.exec('ALTER TABLE courses ADD COLUMN user_id TEXT;');
   } catch {
     // Column already exists
   }
@@ -119,26 +133,67 @@ export function resetDbForTests() {
   return initDb(':memory:');
 }
 
-export function listCourses() {
+/**
+ * M6 User Account helpers
+ */
+export function createUser({ email, passwordHash }) {
   const db = getDb();
-  return db.prepare('SELECT id, name, created_at FROM courses ORDER BY created_at ASC').all();
+  const id = crypto.randomUUID();
+  const normalizedEmail = email.trim().toLowerCase();
+  const createdAt = new Date().toISOString();
+
+  db.prepare(
+    'INSERT INTO users (id, email, password_hash, created_at) VALUES (?, ?, ?, ?)'
+  ).run(id, normalizedEmail, passwordHash, createdAt);
+
+  return { id, email: normalizedEmail, created_at: createdAt };
 }
 
-export function createCourse(name) {
+export function getUserByEmail(email) {
+  const db = getDb();
+  const normalizedEmail = (email || '').trim().toLowerCase();
+  return (
+    db
+      .prepare('SELECT id, email, password_hash, created_at FROM users WHERE email = ?')
+      .get(normalizedEmail) || null
+  );
+}
+
+export function getUserById(userId) {
+  const db = getDb();
+  return (
+    db.prepare('SELECT id, email, created_at FROM users WHERE id = ?').get(userId) || null
+  );
+}
+
+export function listCourses(userId = null) {
+  const db = getDb();
+  if (userId) {
+    return db
+      .prepare(
+        'SELECT id, user_id, name, created_at FROM courses WHERE user_id = ? OR user_id IS NULL ORDER BY created_at ASC'
+      )
+      .all(userId);
+  }
+  return db.prepare('SELECT id, user_id, name, created_at FROM courses ORDER BY created_at ASC').all();
+}
+
+export function createCourse(name, userId = null) {
   const db = getDb();
   const id = crypto.randomUUID();
   const createdAt = new Date().toISOString();
-  db.prepare('INSERT INTO courses (id, name, created_at) VALUES (?, ?, ?)').run(
+  db.prepare('INSERT INTO courses (id, user_id, name, created_at) VALUES (?, ?, ?, ?)').run(
     id,
+    userId,
     name.trim(),
     createdAt
   );
-  return { id, name: name.trim(), created_at: createdAt };
+  return { id, user_id: userId, name: name.trim(), created_at: createdAt };
 }
 
 export function getCourseById(courseId) {
   const db = getDb();
-  return db.prepare('SELECT id, name, created_at FROM courses WHERE id = ?').get(courseId) || null;
+  return db.prepare('SELECT id, user_id, name, created_at FROM courses WHERE id = ?').get(courseId) || null;
 }
 
 export function findDocumentByHash(courseId, fileHash) {

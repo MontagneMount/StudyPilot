@@ -1,4 +1,4 @@
-// Feature-detect Invoker Commands API for declarative dialog close button
+// Feature-detect Invoker Commands API for declarative dialog open/close buttons
 if (!('commandForElement' in HTMLButtonElement.prototype)) {
   document.addEventListener('click', (event) => {
     const button = event.composedPath().find((el) => el.matches?.('button[commandfor]'));
@@ -7,11 +7,15 @@ if (!('commandForElement' in HTMLButtonElement.prototype)) {
     const command = button.getAttribute('command');
     if (target && command === 'close' && typeof target.close === 'function') {
       target.close();
+    } else if (target && command === 'show-modal' && typeof target.showModal === 'function') {
+      target.showModal();
     }
   });
 }
 
 const state = {
+  authToken: localStorage.getItem('studypilot_token') || null,
+  user: null,
   courseId: 'default-course',
   courses: [],
   documents: [],
@@ -64,6 +68,16 @@ const citationDialog = document.getElementById('citation-dialog');
 const citationDialogTitle = document.getElementById('citation-dialog-title');
 const citationDialogMeta = document.getElementById('citation-dialog-meta');
 const citationDialogBody = document.getElementById('citation-dialog-body');
+
+const authDialog = document.getElementById('auth-dialog');
+const authForm = document.getElementById('auth-form');
+const emailInput = document.getElementById('email');
+const passwordInput = document.getElementById('current-password');
+const registerSubmitBtn = document.getElementById('register-submit-btn');
+const authFeedback = document.getElementById('auth-feedback');
+const openAuthBtn = document.getElementById('open-auth-btn');
+const logoutBtn = document.getElementById('logout-btn');
+const userDisplay = document.getElementById('user-display');
 
 const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024; // 20 MB
 
@@ -804,6 +818,91 @@ plannerForm.addEventListener('submit', async (event) => {
 });
 
 // Initialize on load
+function renderAuthState() {
+  if (state.user) {
+    userDisplay.textContent = state.user.email;
+    userDisplay.hidden = false;
+    openAuthBtn.hidden = true;
+    logoutBtn.hidden = false;
+  } else {
+    userDisplay.textContent = '';
+    userDisplay.hidden = true;
+    openAuthBtn.hidden = false;
+    logoutBtn.hidden = true;
+  }
+}
+
+async function submitAuth(mode = 'login') {
+  hideFeedback(authFeedback);
+  const email = emailInput.value.trim();
+  const password = passwordInput.value;
+
+  if (!email || !password) {
+    showFeedback(authFeedback, 'Please enter both email and password.', 'error');
+    return;
+  }
+
+  const endpoint = mode === 'register' ? '/api/auth/register' : '/api/auth/login';
+  try {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Authentication failed.');
+    }
+
+    state.authToken = data.token;
+    state.user = data.user;
+    localStorage.setItem('studypilot_token', data.token);
+    renderAuthState();
+    passwordInput.value = '';
+    if (typeof authDialog.close === 'function') {
+      authDialog.close();
+    }
+  } catch (err) {
+    showFeedback(authFeedback, err.message, 'error');
+  }
+}
+
+authForm?.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  await submitAuth('login');
+});
+
+registerSubmitBtn?.addEventListener('click', async () => {
+  await submitAuth('register');
+});
+
+logoutBtn?.addEventListener('click', () => {
+  state.authToken = null;
+  state.user = null;
+  localStorage.removeItem('studypilot_token');
+  renderAuthState();
+});
+
+async function checkCurrentSession() {
+  if (!state.authToken) return;
+  try {
+    const res = await fetch('/api/auth/me', {
+      headers: { Authorization: `Bearer ${state.authToken}` },
+    });
+    if (!res.ok) {
+      state.authToken = null;
+      localStorage.removeItem('studypilot_token');
+      return;
+    }
+    const data = await res.json();
+    state.user = data.user;
+    renderAuthState();
+  } catch {
+    // Ignore session check error
+  }
+}
+
+await checkCurrentSession();
 await loadCourses();
 await loadDocuments();
 await loadQuizAndWeakTopics();

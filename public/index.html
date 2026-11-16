@@ -11,9 +11,24 @@
     <div class="container header-inner">
       <div>
         <h1>StudyPilot</h1>
-        <p class="subtitle">AI Teaching Assistant for University Courses (M3: RAG, Quiz &amp; Weak-Point Tracking)</p>
+        <p class="subtitle">AI Teaching Assistant for University Courses (M1–M6 Full Stack)</p>
       </div>
-      <span class="badge" id="status-badge">0 Documents Indexed</span>
+      <div class="header-actions">
+        <span class="badge" id="status-badge">0 Documents Indexed</span>
+        <span class="user-pill" id="user-display" hidden></span>
+        <button
+          type="button"
+          class="btn btn-secondary btn-sm"
+          id="open-auth-btn"
+          commandfor="auth-dialog"
+          command="show-modal"
+        >
+          Sign In / Register
+        </button>
+        <button type="button" class="btn btn-secondary btn-sm" id="logout-btn" hidden>
+          Sign Out
+        </button>
+      </div>
     </div>
   </header>
 
@@ -268,6 +283,75 @@
       </button>
     </div>
     <div id="citation-dialog-body" class="dialog-body"></div>
+  </dialog>
+
+  <!-- M6 User Authentication Modal Dialog (Sign In / Register) -->
+  <dialog id="auth-dialog" class="citation-dialog" aria-labelledby="auth-dialog-title">
+    <div class="dialog-header">
+      <div>
+        <h3 id="auth-dialog-title">Sign In to StudyPilot</h3>
+        <p class="dialog-meta">Access your personal courses, quizzes, and study plans.</p>
+      </div>
+      <button
+        type="button"
+        class="btn btn-secondary btn-sm"
+        commandfor="auth-dialog"
+        command="close"
+        id="auth-dialog-close"
+      >
+        Close
+      </button>
+    </div>
+
+    <form id="auth-form" novalidate>
+      <div class="field">
+        <label for="email">Email Address</label>
+        <span id="email-hint" class="hint">Format: student@e.ntu.edu.sg</span>
+        <input
+          type="email"
+          id="email"
+          name="email"
+          autocomplete="username"
+          spellcheck="false"
+          required
+          aria-describedby="email-hint"
+          aria-errormessage="email-error"
+        />
+        <div id="email-error" class="error-msg">
+          <span aria-hidden="true">❌</span> Please enter a valid email address.
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="current-password">Password</label>
+        <span id="password-hint" class="hint">At least 6 characters</span>
+        <input
+          type="password"
+          id="current-password"
+          name="password"
+          autocomplete="current-password"
+          required
+          minlength="6"
+          enterkeyhint="done"
+          aria-describedby="password-hint"
+          aria-errormessage="password-error"
+        />
+        <div id="password-error" class="error-msg">
+          <span aria-hidden="true">❌</span> Password must be at least 6 characters.
+        </div>
+      </div>
+
+      <div class="input-row" style="margin-top:1rem;">
+        <button type="submit" id="signin-submit-btn" class="btn btn-primary" data-mode="login">
+          Sign In
+        </button>
+        <button type="button" id="register-submit-btn" class="btn btn-secondary">
+          Create Account
+        </button>
+      </div>
+    </form>
+
+    <div id="auth-feedback" class="feedback" role="alert" hidden></div>
   </dialog>
 
   <script type="module" src="/app.js"></script>

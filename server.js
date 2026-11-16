@@ -3,10 +3,12 @@ import express from 'express';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { initDb } from './src/db/index.js';
+import { createAuthRouter } from './src/routes/auth.js';
 import { createDocumentsRouter } from './src/routes/documents.js';
 import { createChatRouter } from './src/routes/chat.js';
 import { createQuizRouter } from './src/routes/quiz.js';
 import { createPlanRouter } from './src/routes/plan.js';
+import { attachUserIfPresent, createRateLimiter } from './src/utils/security.js';
 import { AppError } from './src/utils/errors.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -23,14 +25,30 @@ export function createApp({
   describeVisualPages,
   describeImage,
   runPlannerModelTurn,
+  rateLimitMax = 120,
+  rateLimitWindowMs = 60 * 1000,
 } = {}) {
   initDb(dbPath);
 
   const app = express();
 
   app.use(express.json({ limit: '1mb' }));
+  app.use(attachUserIfPresent);
+  app.use(
+    '/api',
+    createRateLimiter({
+      windowMs: rateLimitWindowMs,
+      maxRequests: rateLimitMax,
+    })
+  );
+
   app.use(express.static(path.join(__dirname, 'public')));
 
+  app.get('/api/health', (_req, res) => {
+    res.status(200).json({ status: 'ok', version: '1.0.0' });
+  });
+
+  app.use('/api', createAuthRouter());
   app.use(
     '/api',
     createDocumentsRouter({
@@ -75,6 +93,6 @@ if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {
   const port = Number(process.env.PORT) || 3000;
   const app = createApp();
   app.listen(port, () => {
-    console.log(`StudyPilot M5 server running at http://localhost:${port}`);
+    console.log(`StudyPilot M6 server running at http://localhost:${port}`);
   });
 }

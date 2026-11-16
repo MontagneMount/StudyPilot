@@ -1,19 +1,21 @@
 {
   "name": "studypilot",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "AI teaching assistant for university course materials powered by Google Gemini",
   "type": "module",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "test": "node --test tests/*.test.js"
+    "lint": "node --check server.js && node --check eval/runEval.js",
+    "test": "node --test tests/*.test.js",
+    "eval": "node eval/runEval.js"
   },
   "dependencies": {
     "@google/genai": "^2.29.1",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "multer": "^1.4.5-lts.2",
-    "pdfjs-dist": "^6.5.438"
+    "pdfjs-dist": "^5.4.624"
   }
 }

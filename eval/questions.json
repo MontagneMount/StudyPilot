@@ -1,0 +1,402 @@
+[
+  {
+    "id": "q01",
+    "topic": "Linear Regression",
+    "sourcePage": 1,
+    "question": "What is the closed-form Normal Equation solution for ordinary least squares weights w?",
+    "expectedAnswer": "w = (X^T X)^(-1) X^T y",
+    "pageContent": "Lecture 1: Linear Regression. Ordinary Least Squares minimizes the residual sum of squares ||Xw - y||_2^2. Setting the gradient with respect to w to zero yields the closed-form Normal Equation: w = (X^T X)^(-1) X^T y, assuming X^T X is invertible."
+  },
+  {
+    "id": "q02",
+    "topic": "Linear Regression",
+    "sourcePage": 2,
+    "question": "How does Ridge Regression (L2 regularization) modify the normal equation to handle collinearity?",
+    "expectedAnswer": "It adds lambda * I to X^T X, giving w = (X^T X + lambda I)^(-1) X^T y.",
+    "pageContent": "Page 2: Ridge Regression adds an L2 penalty lambda ||w||_2^2 to the objective. This shifts the diagonal of the Gram matrix so the closed-form solution becomes w = (X^T X + lambda I)^(-1) X^T y, which is always invertible for lambda > 0."
+  },
+  {
+    "id": "q03",
+    "topic": "Linear Regression",
+    "sourcePage": 3,
+    "question": "Why does Lasso (L1 regularization) produce sparse weight vectors?",
+    "expectedAnswer": "The L1 norm has a diamond-shaped constraint region with sharp corners along the coordinate axes where level sets intersect.",
+    "pageContent": "Page 3: Lasso Regression uses the L1 penalty lambda ||w||_1. Geometrically, the L1 constraint region is a hyper-diamond with sharp corners on the coordinate axes, causing contour intersections to zero out irrelevant features and produce sparse solutions."
+  },
+  {
+    "id": "q04",
+    "topic": "Logistic Regression",
+    "sourcePage": 4,
+    "question": "What is the formula and range of the logistic sigmoid activation function sigma(z)?",
+    "expectedAnswer": "sigma(z) = 1 / (1 + e^(-z)), mapping real numbers to the open interval (0, 1).",
+    "pageContent": "Page 4: Logistic Regression models binary class probabilities using the logistic sigmoid function sigma(z) = 1 / (1 + e^(-z)), which maps any real logit z in (-inf, +inf) strictly into the probability interval (0, 1)."
+  },
+  {
+    "id": "q05",
+    "topic": "Logistic Regression",
+    "sourcePage": 5,
+    "question": "What is the derivative of the sigmoid function sigma(z) with respect to z?",
+    "expectedAnswer": "sigma'(z) = sigma(z) * (1 - sigma(z))",
+    "pageContent": "Page 5: A key mathematical property of the logistic sigmoid is that its first derivative can be expressed in terms of its own output: d/dz sigma(z) = sigma(z)(1 - sigma(z)), reaching its maximum value of 0.25 at z = 0."
+  },
+  {
+    "id": "q06",
+    "topic": "Logistic Regression",
+    "sourcePage": 6,
+    "question": "Why do we use Binary Cross-Entropy loss instead of Mean Squared Error for logistic regression?",
+    "expectedAnswer": "MSE with a sigmoid activation is non-convex with flat plateaus, whereas Binary Cross-Entropy is convex.",
+    "pageContent": "Page 6: Applying Mean Squared Error to a sigmoid output produces a non-convex loss surface with vanishing gradients on saturated plateaus. In contrast, Negative Log-Likelihood (Binary Cross-Entropy) yields a strictly convex objective."
+  },
+  {
+    "id": "q07",
+    "topic": "Optimization",
+    "sourcePage": 7,
+    "question": "What is the difference between Batch Gradient Descent and Stochastic Gradient Descent (SGD)?",
+    "expectedAnswer": "Batch GD computes the gradient over the entire dataset per step, while SGD updates weights using a single sample or mini-batch.",
+    "pageContent": "Page 7: Batch Gradient Descent evaluates the exact gradient over all N training examples before each update, costing O(N) per step. Stochastic Gradient Descent (SGD) approximates the gradient using a single sample or mini-batch B, enabling fast updates."
+  },
+  {
+    "id": "q08",
+    "topic": "Optimization",
+    "sourcePage": 8,
+    "question": "How does Momentum accelerate gradient descent in narrow ravines?",
+    "expectedAnswer": "It accumulates an exponentially decaying moving average of past gradients to damp oscillations and speed up progress along consistent directions.",
+    "pageContent": "Page 8: Classical Momentum maintains a velocity vector v_t = beta v_{t-1} + (1 - beta) g_t. This exponentially weighted moving average cancels out high-curvature oscillations across steep ravine walls while compounding velocity along the valley floor."
+  },
+  {
+    "id": "q09",
+    "topic": "Optimization",
+    "sourcePage": 9,
+    "question": "What moments of the gradient does the Adam optimizer track?",
+    "expectedAnswer": "Adam tracks both the first moment (mean) m_t and the second raw moment (uncentered variance) v_t with bias correction.",
+    "pageContent": "Page 9: Adaptive Moment Estimation (Adam) maintains exponential moving averages of both the first moment m_t (mean gradient, beta_1 = 0.9) and the second raw moment v_t (squared gradient, beta_2 = 0.999), applying bias correction hat_m_t and hat_v_t."
+  },
+  {
+    "id": "q10",
+    "topic": "Optimization",
+    "sourcePage": 10,
+    "question": "How does AdamW differ from standard Adam with L2 regularization?",
+    "expectedAnswer": "AdamW decouples weight decay from the adaptive gradient rescaling, applying weight decay directly to the parameters.",
+    "pageContent": "Page 10: In standard Adam, adding an L2 penalty to the loss couples weight decay with the inverse square root of v_t. AdamW decouples weight decay from the gradient update, decaying weights directly by w_t = (1 - eta * lambda) w_{t-1}."
+  },
+  {
+    "id": "q11",
+    "topic": "Neural Networks",
+    "sourcePage": 11,
+    "question": "What does the Universal Approximation Theorem state for feedforward neural networks?",
+    "expectedAnswer": "A feedforward network with a single hidden layer and a non-polynomial activation can approximate any continuous function on a compact subset of R^n.",
+    "pageContent": "Page 11: The Cybenko-Hornik Universal Approximation Theorem proves that a two-layer MLP with a non-polynomial activation function and sufficient hidden units can approximate any continuous function on a compact domain to arbitrary precision."
+  },
+  {
+    "id": "q12",
+    "topic": "Neural Networks",
+    "sourcePage": 12,
+    "question": "What is the dying ReLU problem and how does Leaky ReLU solve it?",
+    "expectedAnswer": "ReLU outputs zero with zero gradient for negative inputs so neurons can get permanently stuck; Leaky ReLU uses a small positive slope alpha (e.g. 0.01) for x < 0.",
+    "pageContent": "Page 12: Because ReLU(x) = max(0, x) has zero derivative for all x < 0, a large update can push a neuron into the negative regime permanently (Dying ReLU). Leaky ReLU fixes this by setting f(x) = alpha * x (alpha = 0.01) when x < 0."
+  },
+  {
+    "id": "q13",
+    "topic": "Neural Networks",
+    "sourcePage": 13,
+    "question": "Why is GELU (Gaussian Error Linear Unit) widely used in modern Transformer models?",
+    "expectedAnswer": "GELU smoothly weights inputs by their Gaussian cumulative distribution x * Phi(x), providing a smooth non-monotonic curve near zero.",
+    "pageContent": "Page 13: GELU(x) = x * Phi(x), where Phi(x) is the standard Gaussian CDF, smoothly gates inputs by their magnitude rather than using a hard threshold at zero, improving gradient flow in BERT and GPT architectures."
+  },
+  {
+    "id": "q14",
+    "topic": "Backpropagation",
+    "sourcePage": 14,
+    "question": "Why is reverse-mode automatic differentiation (backpropagation) much faster than forward-mode for neural network training?",
+    "expectedAnswer": "Neural networks map millions of parameters to a single scalar loss, so reverse-mode computes all gradients in one backward pass.",
+    "pageContent": "Page 14: Reverse-mode autodiff (backpropagation) propagates sensitivities from the single scalar loss L back to all M parameters in O(1) passes, whereas forward-mode autodiff requires O(M) passes for M parameters."
+  },
+  {
+    "id": "q15",
+    "topic": "Backpropagation",
+    "sourcePage": 15,
+    "question": "Why must intermediate forward activations be cached in GPU memory during training?",
+    "expectedAnswer": "Computing the backward gradient dL/dW_l = delta_l * a_{l-1}^T requires the forward activation a_{l-1} of each layer.",
+    "pageContent": "Page 15: During the backward pass, the weight gradient at layer l is dL/dW_l = (dL/dz_l) a_{l-1}^T. Therefore, all intermediate forward activations a_{l-1} must be retained in VRAM until their corresponding backward step completes."
+  },
+  {
+    "id": "q16",
+    "topic": "Initialization",
+    "sourcePage": 16,
+    "question": "What happens if all weights in a multi-layer neural network are initialized to zero?",
+    "expectedAnswer": "All hidden units in a layer compute identical outputs and receive identical gradients (symmetry breaking fails).",
+    "pageContent": "Page 16: Zero initialization causes complete symmetry: every neuron in a hidden layer computes the exact same activation and receives the exact same gradient during backpropagation, preventing the network from learning diverse features."
+  },
+  {
+    "id": "q17",
+    "topic": "Initialization",
+    "sourcePage": 17,
+    "question": "What variance is used in He (Kaiming) initialization for ReLU networks?",
+    "expectedAnswer": "Var(W) = 2 / n_in, where n_in is the fan-in of the layer.",
+    "pageContent": "Page 17: Because ReLU zeroes out half of its inputs on average, Xavier initialization Var(W) = 1 / n_in causes variance to halve each layer. He (Kaiming) initialization sets Var(W) = 2 / n_in to preserve activation variance across deep ReLU layers."
+  },
+  {
+    "id": "q18",
+    "topic": "Regularization",
+    "sourcePage": 18,
+    "question": "How does Inverted Dropout scale activations during training vs inference?",
+    "expectedAnswer": "During training, kept activations are divided by keep probability p so no scaling is needed at inference time.",
+    "pageContent": "Page 18: Inverted Dropout zeroes each unit with probability 1 - p and divides remaining activations by p during training. This preserves the expected activation magnitude E[a] so test-time inference requires zero weight rescaling."
+  },
+  {
+    "id": "q19",
+    "topic": "Normalization",
+    "sourcePage": 19,
+    "question": "What is the key difference between Batch Normalization and Layer Normalization?",
+    "expectedAnswer": "BatchNorm normalizes across the mini-batch dimension per feature, whereas LayerNorm normalizes across all features within each individual sample/token.",
+    "pageContent": "Page 19: Batch Normalization computes mean and variance across the mini-batch B for each channel, requiring running statistics at inference. Layer Normalization normalizes across the feature dimension d for each single token independently of batch size."
+  },
+  {
+    "id": "q20",
+    "topic": "Normalization",
+    "sourcePage": 20,
+    "question": "How does RMSNorm simplify Layer Normalization in modern LLMs?",
+    "expectedAnswer": "RMSNorm removes mean-centering and only normalizes by the root mean square of activations, saving computation.",
+    "pageContent": "Page 20: Root Mean Square Layer Normalization (RMSNorm) hypothesizes that shift invariance is unnecessary; it omits mean subtraction mu and scales activations solely by rms(x) = sqrt(1/d sum x_i^2 + eps), reducing memory bandwidth overhead."
+  },
+  {
+    "id": "q21",
+    "topic": "CNNs",
+    "sourcePage": 21,
+    "question": "What is the formula for the output spatial size O of a 2D convolution given input I, kernel K, padding P, and stride S?",
+    "expectedAnswer": "O = floor((I - K + 2P) / S) + 1",
+    "pageContent": "Page 21: Convolutional Layer Arithmetic. Given an input feature map of spatial size I, kernel size K, zero-padding P, and stride S, the output spatial dimension is O = floor((I - K + 2P) / S) + 1."
+  },
+  {
+    "id": "q22",
+    "topic": "CNNs",
+    "sourcePage": 22,
+    "question": "What is the main purpose of a 1x1 convolution (pointwise convolution) in architectures like ResNet and Inception?",
+    "expectedAnswer": "To project channel dimensionality (bottleneck compression/expansion) and mix cross-channel information cheaply.",
+    "pageContent": "Page 22: A 1x1 convolution acts as a learnable linear projection across the channel dimension C_in -> C_out at each pixel, allowing bottleneck blocks to reduce channel depth before expensive 3x3 convolutions."
+  },
+  {
+    "id": "q23",
+    "topic": "CNNs",
+    "sourcePage": 23,
+    "question": "How do Residual Connections (skip connections) y = F(x) + x mitigate vanishing gradients in ResNet?",
+    "expectedAnswer": "The identity shortcut provides an unimpeded gradient highway dy/dx = 1 + dF/dx so gradients flow directly to early layers.",
+    "pageContent": "Page 23: In ResNet, residual blocks compute y = F(x) + x. By the chain rule, dL/dx = dL/dy * (I + dF/dx), guaranteeing an additive identity term I that prevents gradients from vanishing even across 152 layers."
+  },
+  {
+    "id": "q24",
+    "topic": "CNNs",
+    "sourcePage": 24,
+    "question": "How does Depthwise Separable Convolution reduce parameters compared to standard convolution?",
+    "expectedAnswer": "It factorizes spatial filtering (depthwise per channel) from channel mixing (1x1 pointwise convolution), reducing cost by roughly 1/K^2.",
+    "pageContent": "Page 24: MobileNet replaces standard convolution (cost K^2 * C_in * C_out) with a depthwise KxK filter per input channel followed by a 1x1 pointwise convolution (cost K^2 * C_in + C_in * C_out), cutting FLOPs by ~8-9x for 3x3 kernels."
+  },
+  {
+    "id": "q25",
+    "topic": "Sequence Models",
+    "sourcePage": 25,
+    "question": "Why do vanilla Recurrent Neural Networks (RNNs) suffer from vanishing or exploding gradients over long sequences?",
+    "expectedAnswer": "Backpropagation Through Time repeatedly multiplies by the recurrent weight matrix W_hh^T across T time steps.",
+    "pageContent": "Page 25: In Backpropagation Through Time (BPTT), the Jacobian dh_T / dh_1 involves raising the recurrent transition matrix W_hh to the power T. Eigenvalues > 1 cause exploding gradients (fixed by gradient clipping), while eigenvalues < 1 cause vanishing gradients."
+  },
+  {
+    "id": "q26",
+    "topic": "Sequence Models",
+    "sourcePage": 26,
+    "question": "How does the LSTM cell state c_t preserve long-range dependencies?",
+    "expectedAnswer": "The cell state updates via an additive linear recurrence c_t = f_t * c_{t-1} + i_t * tilde_c_t controlled by the forget gate f_t.",
+    "pageContent": "Page 26: Long Short-Term Memory (LSTM) introduces a separate cell state c_t updated additively: c_t = f_t odot c_{t-1} + i_t odot tilde_c_t. When the forget gate f_t is near 1, gradients flow across hundreds of steps without exponential decay."
+  },
+  {
+    "id": "q27",
+    "topic": "Transformers",
+    "sourcePage": 27,
+    "question": "What is the mathematical formula for Scaled Dot-Product Attention?",
+    "expectedAnswer": "Attention(Q, K, V) = softmax((Q K^T) / sqrt(d_k)) V",
+    "pageContent": "Page 27: Scaled Dot-Product Attention computes Attention(Q, K, V) = softmax((Q K^T) / sqrt(d_k)) V, where Q, K, V are query, key, and value matrices and d_k is the key dimension."
+  },
+  {
+    "id": "q28",
+    "topic": "Transformers",
+    "sourcePage": 28,
+    "question": "Why do we divide the dot products Q K^T by sqrt(d_k) before applying softmax?",
+    "expectedAnswer": "For large d_k, dot products grow in variance (Var = d_k), pushing softmax into saturated regions with tiny gradients.",
+    "pageContent": "Page 28: If components of q and k have zero mean and unit variance, their dot product q dot k has variance d_k. Dividing by sqrt(d_k) restores unit variance so softmax does not saturate into one-hot peaks with vanishing gradients."
+  },
+  {
+    "id": "q29",
+    "topic": "Transformers",
+    "sourcePage": 29,
+    "question": "What is the time and memory complexity of standard self-attention with respect to sequence length N?",
+    "expectedAnswer": "O(N^2) time and memory because it computes an N x N pairwise attention matrix.",
+    "pageContent": "Page 29: Standard self-attention materializes the full N x N attention score matrix Q K^T for sequence length N, resulting in O(N^2 d) compute and O(N^2) memory complexity."
+  },
+  {
+    "id": "q30",
+    "topic": "Transformers",
+    "sourcePage": 30,
+    "question": "How does causal masking in Decoder-only Transformers prevent information leakage?",
+    "expectedAnswer": "It sets upper-triangular attention logits (j > i) to -infinity before softmax so token i cannot attend to future tokens.",
+    "pageContent": "Page 30: Autoregressive causal masking adds a mask matrix M where M_{ij} = 0 for j <= i and M_{ij} = -infinity for j > i prior to softmax, ensuring token position i has zero attention weight on future tokens j > i."
+  },
+  {
+    "id": "q31",
+    "topic": "Transformers",
+    "sourcePage": 31,
+    "question": "Why do Transformers require Positional Encodings (such as sinusoidal or RoPE)?",
+    "expectedAnswer": "Self-attention is permutation-equivariant and has no built-in notion of token order without positional information.",
+    "pageContent": "Page 31: Without positional encodings, self-attention is a set operation (permutation-equivariant): shuffling input tokens simply shuffles the output representations identically. Sinusoidal or Rotary Position Embeddings (RoPE) inject token order."
+  },
+  {
+    "id": "q32",
+    "topic": "Transformers",
+    "sourcePage": 32,
+    "question": "How does Rotary Position Embedding (RoPE) encode relative token distances?",
+    "expectedAnswer": "RoPE rotates query and key vectors in 2D complex planes by angles proportional to their position index m, so q_m dot k_n depends only on m - n.",
+    "pageContent": "Page 32: RoPE multiplies 2D pairs of query and key dimensions by rotation matrices R(m * theta). Consequently, the inner product <R(m theta) q, R(n theta) k> depends purely on the relative distance (m - n)."
+  },
+  {
+    "id": "q33",
+    "topic": "LLM Inference",
+    "sourcePage": 33,
+    "question": "What is the KV Cache in autoregressive Transformer decoding and why is it used?",
+    "expectedAnswer": "It caches previously computed Key and Value tensors for past tokens so each new token step only computes K and V for the newest token, reducing per-step work from O(N^2) to O(N).",
+    "pageContent": "Page 33: During autoregressive generation, the Key and Value projections of prefix tokens 1..t-1 never change. The KV Cache stores these tensors in GPU memory so step t only computes q_t, k_t, v_t, avoiding redundant recomputation."
+  },
+  {
+    "id": "q34",
+    "topic": "LLM Inference",
+    "sourcePage": 34,
+    "question": "How does Grouped-Query Attention (GQA) reduce KV Cache memory compared to Multi-Head Attention (MHA)?",
+    "expectedAnswer": "GQA shares a single Key and Value head across a group of multiple Query heads, shrinking KV cache size by the group factor G.",
+    "pageContent": "Page 34: Grouped-Query Attention partitions H query heads into G groups, where each group shares a single Key head and Value head. This shrinks KV Cache memory footprint by H/G while retaining near-MHA quality."
+  },
+  {
+    "id": "q35",
+    "topic": "FlashAttention",
+    "sourcePage": 35,
+    "question": "How does FlashAttention achieve exact attention in O(N) HBM memory without materializing the N x N matrix?",
+    "expectedAnswer": "It tiles Q, K, V into SRAM blocks and uses online softmax rescaling to accumulate the output incrementally.",
+    "pageContent": "Page 35: FlashAttention is an IO-aware exact attention algorithm that loads blocks of Q, K, V into fast on-chip SRAM and uses online softmax (tracking running max m and sum l) so the N x N attention matrix is never written to slow GPU HBM."
+  },
+  {
+    "id": "q36",
+    "topic": "Pretraining & Alignment",
+    "sourcePage": 36,
+    "question": "How does Low-Rank Adaptation (LoRA) reduce trainable parameters during fine-tuning?",
+    "expectedAnswer": "LoRA freezes pretrained weights W_0 and injects trainable low-rank matrices B * A where rank r << min(d, k).",
+    "pageContent": "Page 36: LoRA freezes the base weight matrix W_0 in R^{d x k} and parameterizes the update as Delta W = B A, with B in R^{d x r} and A in R^{r x k} for rank r << d, reducing trainable parameters and optimizer states by >99%."
+  },
+  {
+    "id": "q37",
+    "topic": "Pretraining & Alignment",
+    "sourcePage": 37,
+    "question": "How should matrices A and B be initialized in LoRA so fine-tuning starts as an exact identity match to the base model?",
+    "expectedAnswer": "A is initialized with random Gaussian noise and B is initialized to zero, so Delta W = B A = 0 at step 0.",
+    "pageContent": "Page 37: In LoRA, matrix A is initialized from a Gaussian distribution N(0, sigma^2) while matrix B is initialized to all zeros. This guarantees Delta W = B A = 0 at the start of training so the model behaves identically to W_0 initially."
+  },
+  {
+    "id": "q38",
+    "topic": "Pretraining & Alignment",
+    "sourcePage": 38,
+    "question": "How does Direct Preference Optimization (DPO) simplify RLHF?",
+    "expectedAnswer": "DPO reparameterizes the reward function directly in terms of the optimal policy and reference policy, eliminating the separate reward model and PPO loop.",
+    "pageContent": "Page 38: Direct Preference Optimization (DPO) derives a closed-form mapping between the reward function r(x, y) and the optimal policy pi_theta, allowing alignment on (y_win, y_lose) pairs via binary cross-entropy without training a reward model or running PPO."
+  },
+  {
+    "id": "q39",
+    "topic": "RAG & Embeddings",
+    "sourcePage": 39,
+    "question": "Why do RAG chunking pipelines use an overlap window between consecutive chunks?",
+    "expectedAnswer": "Overlap prevents sentences, formulas, or key context at chunk boundaries from being split in half and losing semantic meaning.",
+    "pageContent": "Page 39: Fixed-length chunking without overlap frequently cuts sentences or multi-line proofs right across a boundary. Using a 10-20% token overlap ensures boundary concepts appear intact in at least one chunk."
+  },
+  {
+    "id": "q40",
+    "topic": "RAG & Embeddings",
+    "sourcePage": 40,
+    "question": "Why does Hybrid Search (combining dense embeddings with BM25 lexical search) outperform dense vector search alone?",
+    "expectedAnswer": "Dense embeddings capture semantic paraphrases while BM25 lexical matching excels at exact acronyms, course codes, function names, and rare identifiers.",
+    "pageContent": "Page 40: Dense vector retrieval captures broad semantic similarity but often misses exact keyword tokens like course codes (CS5242), theorem numbers, or equation identifiers. Hybrid Search combines dense cosine similarity with lexical BM25 matching."
+  },
+  {
+    "id": "q41",
+    "topic": "Information Theory",
+    "sourcePage": 41,
+    "question": "How is the Kullback-Leibler (KL) divergence D_KL(P || Q) defined and is it symmetric?",
+    "expectedAnswer": "D_KL(P || Q) = sum P(x) log(P(x) / Q(x)); it is asymmetric so D_KL(P || Q) != D_KL(Q || P).",
+    "pageContent": "Page 41: KL Divergence measures relative entropy D_KL(P || Q) = sum_x P(x) log(P(x) / Q(x)). It is non-negative (Gibbs inequality) and strictly asymmetric, meaning forward KL and reverse KL have different mode-seeking behaviors."
+  },
+  {
+    "id": "q42",
+    "topic": "Information Theory",
+    "sourcePage": 42,
+    "question": "How is Perplexity (PPL) related to Cross-Entropy loss H(p, q) in language modeling?",
+    "expectedAnswer": "Perplexity is the exponential of the average per-token cross-entropy loss: PPL = exp(H(p, q)).",
+    "pageContent": "Page 42: Language model Perplexity is defined as the exponentiated average negative log-likelihood per token: PPL = exp(-1/T sum log P(w_t | w_{<t})) = exp(L_CE). Lower perplexity indicates higher confidence on the test corpus."
+  },
+  {
+    "id": "q43",
+    "topic": "Evaluation Metrics",
+    "sourcePage": 43,
+    "question": "What is the formula for the F1 score in terms of Precision and Recall?",
+    "expectedAnswer": "F1 = 2 * (Precision * Recall) / (Precision + Recall), the harmonic mean of Precision and Recall.",
+    "pageContent": "Page 43: The F1 score is the harmonic mean of Precision and Recall: F1 = 2 * (Precision * Recall) / (Precision + Recall). Unlike the arithmetic mean, the harmonic mean penalizes extreme imbalance when either Precision or Recall is near zero."
+  },
+  {
+    "id": "q44",
+    "topic": "Evaluation Metrics",
+    "sourcePage": 44,
+    "question": "What does an AUROC (Area Under the ROC Curve) of 0.5 indicate for a binary classifier?",
+    "expectedAnswer": "An AUROC of 0.5 indicates random guessing with no discriminative ability between positive and negative classes.",
+    "pageContent": "Page 44: The Receiver Operating Characteristic (ROC) plots True Positive Rate against False Positive Rate across thresholds. An AUROC of 1.0 is a perfect ranker, while an AUROC of 0.5 corresponds to the diagonal line of random chance."
+  },
+  {
+    "id": "q45",
+    "topic": "Generative Models",
+    "sourcePage": 45,
+    "question": "What is the reparameterization trick in Variational Autoencoders (VAEs)?",
+    "expectedAnswer": "Writing z = mu + sigma * epsilon with epsilon ~ N(0, I) so gradients can backpropagate deterministically through mu and sigma.",
+    "pageContent": "Page 45: Sampling z ~ N(mu, sigma^2) directly blocks gradient backpropagation through the stochastic node. The VAE reparameterization trick expresses z = mu + sigma odot epsilon where epsilon ~ N(0, I), making z a differentiable function of mu and sigma."
+  },
+  {
+    "id": "q46",
+    "topic": "Generative Models",
+    "sourcePage": 46,
+    "question": "What is the training objective of a Denoising Diffusion Probabilistic Model (DDPM)?",
+    "expectedAnswer": "Training a neural network epsilon_theta(x_t, t) to predict the Gaussian noise epsilon added at timestep t via MSE loss.",
+    "pageContent": "Page 46: DDPMs corrupt data x_0 over T steps via a forward Gaussian noise schedule. The reverse process trains a U-Net or DiT epsilon_theta(x_t, t) to minimize the simplified MSE objective E[||epsilon - epsilon_theta(x_t, t)||^2]."
+  },
+  {
+    "id": "q47",
+    "topic": "Distributed Training",
+    "sourcePage": 47,
+    "question": "What memory states does ZeRO Stage 3 partition across data-parallel GPUs?",
+    "expectedAnswer": "ZeRO-3 partitions all three model states across GPUs: optimizer states (ZeRO-1), gradients (ZeRO-2), and model parameters (ZeRO-3).",
+    "pageContent": "Page 47: DeepSpeed ZeRO eliminates redundant memory in Data Parallelism: ZeRO-1 shards optimizer states, ZeRO-2 shards gradients + optimizer states, and ZeRO-3 shards model parameters, gradients, and optimizer states across all N GPUs."
+  },
+  {
+    "id": "q48",
+    "topic": "Quantization",
+    "sourcePage": 48,
+    "question": "What three innovations does QLoRA combine to fine-tune a 65B model on a single 48GB GPU?",
+    "expectedAnswer": "4-bit NormalFloat (NF4) quantization, Double Quantization of quantization constants, and Paged Optimizers.",
+    "pageContent": "Page 48: QLoRA enables 4-bit fine-tuning by combining: (1) 4-bit NormalFloat (NF4), information-theoretically optimal for normal weights; (2) Double Quantization of quantization scales; and (3) Paged Optimizers using unified CPU-GPU memory."
+  },
+  {
+    "id": "q49",
+    "topic": "Decoding Strategies",
+    "sourcePage": 49,
+    "question": "How does Nucleus Sampling (Top-p sampling) select the next token during LLM generation?",
+    "expectedAnswer": "It samples from the smallest set of top-ranked tokens whose cumulative probability exceeds threshold p.",
+    "pageContent": "Page 49: Unlike Top-k sampling which fixes candidate count k regardless of distribution shape, Nucleus (Top-p) sampling dynamically selects the smallest prefix set of tokens V^(p) whose cumulative probability sum P(w) >= p, then renormalizes."
+  },
+  {
+    "id": "q50",
+    "topic": "Scaling Laws",
+    "sourcePage": 50,
+    "question": "What is the main conclusion of the Chinchilla compute-optimal scaling laws regarding model size N and training tokens D?",
+    "expectedAnswer": "For a fixed compute budget C, model parameters N and training tokens D should be scaled equally (roughly 20 tokens per parameter).",
+    "pageContent": "Page 50: Hoffmann et al. (Chinchilla Scaling Laws) demonstrated that for a fixed FLOP budget C, model size N and dataset tokens D should scale in equal proportion (N propto C^0.5, D propto C^0.5), recommending ~20 training tokens per parameter."
+  }
+]
